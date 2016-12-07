@@ -1,0 +1,63 @@
+#!/usr/bin/env python
+from __future__ import print_function
+import argparse
+import sys
+from signal import signal, SIGPIPE, SIG_DFL
+
+from pynamd import NamdLog
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('namdlog', type=str, nargs='*', default=[],
+                     help='one or more NAMD log files')
+parser.add_argument('--start', type=int, default=1,
+                     help='first time step to consider (default=1)')
+parser.add_argument('--stop', type=int, default=None,
+                     help='last time step to consider')
+parser.add_argument('--step', type=int, default=1,
+                     help='step interval between samples')
+parser.add_argument('--etitle', type=str, nargs='*', default=None,
+                    help='only print columns for selected etitles')
+args = parser.parse_args()
+
+if len(sys.argv) < 2:
+    parser.print_help()
+    sys.exit()
+
+log = NamdLog(*args.namdlog, info=False)
+numsteps = log.energy['TS'][args.start:args.stop:args.step].size
+args.stop = (log.numsteps if args.stop is None else args.stop)
+
+# This fixes a 'Broken pipe' error when piping output into head, tail, etc.
+signal(SIGPIPE, SIG_DFL)
+if args.etitle is None:
+    print('#      ' + log.etitle.lstrip('ETITLE:'))
+    for n in xrange(args.start, args.stop, args.step):
+        print('       ' + log.energy_frame(n).lstrip('ENERGY:'))
+else:
+    title = ['#            TS']
+    indices = []
+    ntitle = 1
+    for etitle in args.etitle:
+        try:
+            indices.append(log.etitle.split().index(etitle))
+            title.append(' %14s'%etitle)
+            ntitle += 1
+            if ntitle == 5:
+                title.append('     ')
+                ntitle = 0
+        except ValueError:
+            print('#WARNING! Skipping unknown etitle %s'%etitle)
+    print(''.join(title)) 
+    for n in xrange(args.start, args.stop, args.step):
+        terms = log.energy_frame(n).split()
+        title = ['        %7d'%(int(terms[1]))]
+        ntitle = 1
+        for idx in indices:
+            title.append(' %14s'%terms[idx])
+            ntitle += 1
+            if ntitle == 5:
+                title.append('     ')
+                ntitle = 0
+        print(''.join(title))
+
