@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+from __future__ import print_function
+import argparse
+import sys
+
+from pynamd import NamdLog
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('namdlog', type=str, nargs='*',
+                     help='one or more NAMD log files')
+parser.add_argument('--start', type=int, default=1,
+                     help='first time step to consider (default=1)')
+parser.add_argument('--stop', type=int, default=None,
+                     help='last time step to consider')
+parser.add_argument('--step', type=int, default=1,
+                     help='step interval between samples')
+parser.add_argument('-g', type=int, default=None,
+                    help=('if specified, estimate standard error using this'
+                          ' value for the statistical inefficiency'))
+args = parser.parse_args()
+
+if len(sys.argv) < 2:
+    parser.print_help()
+    sys.exit()
+
+log = NamdLog(*args.namdlog, info=True)
+n = log.numsteps
+
+stop = (n if args.stop is None else args.stop)
+N = (stop - args.start) / args.step
+print('Found %d steps of MD'%n)
+print('Statistics for %d steps (%d:%d:%d)'%(N, args.start, stop, args.step))
+print(log.etitle)
+print('Means:')
+print(log.energy_mean(args.start, args.stop, args.step))
+print('Standard Deviations/Errors:')
+print(log.energy_std(args.start, args.stop, args.step, args.g))

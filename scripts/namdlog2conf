@@ -1,0 +1,20 @@
+#!/usr/bin/env python
+import argparse
+import sys
+
+from pynamd import NamdConfig
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('log', type=str, help='A NAMD log file')
+parser.add_argument('--conf', type=str, default=None, 
+                    help='Where to send output (default: stdout)')
+
+if len(sys.argv) < 2:
+    parser.print_help()
+    sys.exit()
+
+args = parser.parse_args()
+
+conf = NamdConfig.fromnamdlog(args.log)
+conf.write((sys.stdout if args.conf is None else args.conf))
