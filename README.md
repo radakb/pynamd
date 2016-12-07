@@ -1,2 +1,2 @@
 # pynamd
-Python Tools for NAMD
+Python tools for NAMD
