@@ -421,8 +421,7 @@ class NamdLog(object):
 
         INFO = 'Info:'
         infile = open(filename, 'r')
-        # Skip down to the Info section (lines starting with 'Info:').
-        while not infile.readline().startswith(INFO): continue
+
         for line in infile:
             #     The Info section is over at the first blank line after it 
             # starts; stop reading when that is reached.  Until then, inspect
