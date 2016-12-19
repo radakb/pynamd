@@ -642,7 +642,7 @@ class NamdLog(object):
         else:
             return ones(lambda_.shape)
 
-    def lambdas(self, lambda_=None):
+    def lambdas(self, lambda1=None):
         """Return scaling parameters for all alchemical groups (1 and 2) and 
         interaction types (bond, elec, and vdw) as a tuple:
 
@@ -654,10 +654,10 @@ class NamdLog(object):
         vdw_lambda
         elec_lambda
         """
-        if lambda_ is None:
-            lambda_ = self.info['alchLambda']
+        if lambda1 is None:
+            lambda1 = self.info['alchLambda']
         else:
-            lambda_ = asarray(lambda_)
+            lambda1 = asarray(lambda1)
         lambda2 = 1. - lambda1
         return (self.bond_lambda(lambda1), self.elec_lambda(lambda1),
                 self.vdw_lambda(lambda1), self.bond_lambda(lambda2),
