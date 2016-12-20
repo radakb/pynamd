@@ -36,9 +36,9 @@ log.info
 #energy contains the time-series data in a dictionary
 log.energy
 
-#this can easily be converted into a pandas dataframe
+#log.energy can easily be converted into a pandas dataframe
 import pandas as pd 
-df =  pd.DataFrame(l.energy)
+df =  pd.DataFrame(log.energy)
 ```
 
 Further examples are in the [examples](examples/) subfolder. 
