@@ -1,0 +1,998 @@
+Charm++: standalone mode (not using charmrun)
+Charm++ warning> fences and atomic operations not available in native assembly
+Converse/Charm++ Commit ID: v6.6.1-rc1-1-gba7c3c3-namd-charm-6.6.1-build-2014-Dec-08-28969
+[0] isomalloc.c> Disabling isomalloc because mmap() does not work
+CharmLB> Load balancer assumes all CPUs are same.
+Charm++> Running on 1 unique compute nodes (8-way SMP).
+Charm++> cpu topology info is gathered in 0.002 seconds.
+Info: Built with CUDA version 6000
+Pe 0 physical rank 0 will use CUDA device of pe 2
+Pe 3 physical rank 3 will use CUDA device of pe 2
+Pe 1 physical rank 1 will use CUDA device of pe 2
+Pe 2 physical rank 2 binding to CUDA device 0 on L12-AJASJA: 'GeForce GTX 960'  Mem: 2048MB  Rev: 5.2
+Info: NAMD 2.10 for Win64-multicore-CUDA
+Info: 
+Info: Please visit http://www.ks.uiuc.edu/Research/namd/
+Info: for updates, documentation, and support information.
+Info: 
+Info: Please cite Phillips et al., J. Comp. Chem. 26:1781-1802 (2005)
+Info: in all publications reporting results obtained with NAMD.
+Info: 
+Info: Based on Charm++/Converse 60601 for multicore-win64
+Info: Built Tue, Dec 09, 2014 3:31:14 PM by jim on europa
+Info: Running on 4 processors, 1 nodes, 1 physical nodes.
+Info: CPU topology information available.
+Info: Charm++/Converse parallel runtime startup completed at 0.2 s
+Info: 25.043 MB of memory in use based on GetProcessMemoryInfo
+Info: Configuration file is conf/11-run-wat.conf
+Info: Changed directory to conf
+TCL: INPUTNAME: 'out/10-min-wat/00001'
+TCL: OUTPUTNAME: 'out/11-run-wat/00001'
+TCL: Restarting from out/10-min-wat/00001
+TCL: running for 500020
+TCL: Suspending until startup complete.
+Info: EXTENDED SYSTEM FILE   out/10-min-wat/00001.restart.xsc
+Info: SIMULATION PARAMETERS:
+Info: TIMESTEP               2
+Info: NUMBER OF STEPS        0
+Info: STEPS PER CYCLE        20
+Info: PERIODIC CELL BASIS 1  79.8666 0 0
+Info: PERIODIC CELL BASIS 2  0 76.0176 0
+Info: PERIODIC CELL BASIS 3  0 0 100.074
+Info: PERIODIC CELL CENTER   -19.5918 -9.75912 22.2998
+Info: WRAPPING ALL CLUSTERS AROUND PERIODIC BOUNDARIES ON OUTPUT.
+Info: LOAD BALANCER  Centralized
+Info: LOAD BALANCING STRATEGY  New Load Balancers -- DEFAULT
+Info: LDB PERIOD             4000 steps
+Info: FIRST LDB TIMESTEP     100
+Info: LAST LDB TIMESTEP     -1
+Info: LDB BACKGROUND SCALING 1
+Info: HOM BACKGROUND SCALING 1
+Info: PME BACKGROUND SCALING 1
+Info: MIN ATOMS PER PATCH    40
+Info: VELOCITY FILE          out/10-min-wat/00001.restart.vel
+Info: CENTER OF MASS MOVING INITIALLY? NO
+Info: DIELECTRIC             1
+Info: EXCLUDE                SCALED ONE-FOUR
+Info: 1-4 ELECTROSTATICS SCALED BY 1
+Info: MODIFIED 1-4 VDW PARAMETERS WILL BE USED
+Info: DCD FILENAME           out/11-run-wat/00001.dcd
+Info: DCD FREQUENCY          2500
+Info: DCD FIRST STEP         2500
+Info: DCD FILE WILL CONTAIN UNIT CELL DATA
+Info: XST FILENAME           out/11-run-wat/00001.xst
+Info: XST FREQUENCY          2500
+Info: NO VELOCITY DCD OUTPUT
+Info: NO FORCE DCD OUTPUT
+Info: OUTPUT FILENAME        out/11-run-wat/00001
+Info: BINARY OUTPUT FILES WILL BE USED
+Info: RESTART FILENAME       out/11-run-wat/00001.restart
+Info: RESTART FREQUENCY      50002
+Info: BINARY RESTART FILES WILL BE USED
+Info: SWITCHING ACTIVE
+Info: SWITCHING ON           10
+Info: SWITCHING OFF          12
+Info: PAIRLIST DISTANCE      14
+Info: PAIRLIST SHRINK RATE   0.01
+Info: PAIRLIST GROW RATE     0.01
+Info: PAIRLIST TRIGGER       0.3
+Info: PAIRLISTS PER CYCLE    2
+Info: PAIRLISTS ENABLED
+Info: MARGIN                 0.495
+Info: HYDROGEN GROUP CUTOFF  2.5
+Info: PATCH DIMENSION        16.995
+Info: ENERGY OUTPUT STEPS    2500
+Info: CROSSTERM ENERGY INCLUDED IN DIHEDRAL
+Info: TIMING OUTPUT STEPS    25000
+Info: LANGEVIN DYNAMICS ACTIVE
+Info: LANGEVIN TEMPERATURE   300
+Info: LANGEVIN USING BBK INTEGRATOR
+Info: LANGEVIN DAMPING COEFFICIENT IS 1 INVERSE PS
+Info: LANGEVIN DYNAMICS NOT APPLIED TO HYDROGENS
+Info: LANGEVIN PISTON PRESSURE CONTROL ACTIVE
+Info:        TARGET PRESSURE IS 1.01325 BAR
+Info:     OSCILLATION PERIOD IS 200 FS
+Info:             DECAY TIME IS 100 FS
+Info:     PISTON TEMPERATURE IS 300 K
+Info:       PRESSURE CONTROL IS GROUP-BASED
+Info:    INITIAL STRAIN RATE IS -5.06207e-006 -5.06207e-006 -5.06207e-006
+Info:       CELL FLUCTUATION IS ISOTROPIC
+Info: PARTICLE MESH EWALD (PME) ACTIVE
+Info: PME TOLERANCE               1e-006
+Info: PME EWALD COEFFICIENT       0.257952
+Info: PME INTERPOLATION ORDER     4
+Info: PME GRID DIMENSIONS         80 80 108
+Info: PME MAXIMUM GRID SPACING    1
+Info: FULL ELECTROSTATIC EVALUATION FREQUENCY      2
+Info: USING VERLET I (r-RESPA) MTS SCHEME.
+Info: C2 SPLITTING OF LONG RANGE ELECTROSTATICS
+Info: PLACING ATOMS IN PATCHES BY HYDROGEN GROUPS
+Info: RIGID BONDS TO HYDROGEN : ALL
+Info:         ERROR TOLERANCE : 1e-005
+Info:          MAX ITERATIONS : 100
+Info: RIGID WATER USING SETTLE ALGORITHM
+Info: RANDOM NUMBER SEED     1437084372
+Info: USE HYDROGEN BONDS?    NO
+Info: COORDINATE PDB         struct/water.pdb
+Info: STRUCTURE FILE         struct/water.psf
+Info: PARAMETER file: CHARMM format! 
+Info: PARAMETERS             FF/par_all22_prot.prm
+Info: PARAMETERS             FF/par_all36_lipid.prm
+Info: PARAMETERS             FF/par_all27_water.prm
+Info: USING ARITHMETIC MEAN TO COMBINE L-J SIGMA PARAMETERS
+Info: BINARY COORDINATES     out/10-min-wat/00001.restart.coor
+Info: SUMMARY OF PARAMETERS:
+Info: 175 BONDS
+Info: 455 ANGLES
+Info: 621 DIHEDRAL
+Info: 38 IMPROPER
+Info: 6 CROSSTERM
+Info: 89 VDW
+Info: 4 VDW_PAIRS
+Info: 0 NBTHOLE_PAIRS
+Info: TIME FOR READING PSF FILE: 0.422
+Info: TIME FOR READING PDB FILE: 0.112
+Info: 
+Info: ****************************
+Info: STRUCTURE SUMMARY:
+Info: 61949 ATOMS
+Info: 44196 BONDS
+Info: 33228 ANGLES
+Info: 22537 DIHEDRALS
+Info: 1531 IMPROPERS
+Info: 532 CROSSTERMS
+Info: 0 EXCLUSIONS
+Info: 57703 RIGID BONDS
+Info: 128144 DEGREES OF FREEDOM
+Info: 22069 HYDROGEN GROUPS
+Info: 4 ATOMS IN LARGEST HYDROGEN GROUP
+Info: 22069 MIGRATION GROUPS
+Info: 4 ATOMS IN LARGEST MIGRATION GROUP
+Info: TOTAL MASS = 381239 amu
+Info: TOTAL CHARGE = -3.99999 e
+Info: MASS DENSITY = 1.04197 g/cm^3
+Info: ATOM DENSITY = 0.101961 atoms/A^3
+Info: *****************************
+Info: Reading from binary file out/10-min-wat/00001.restart.coor
+Info: 
+Info: Entering startup at 0.753 s, 44.3047 MB of memory in use
+Info: Startup phase 0 took 0 s, 44.3047 MB of memory in use
+Info: ADDED 99696 IMPLICIT EXCLUSIONS
+Info: Startup phase 1 took 0.0249999 s, 56.5977 MB of memory in use
+Info: NONBONDED TABLE R-SQUARED SPACING: 0.0625
+Info: NONBONDED TABLE SIZE: 769 POINTS
+Info: ABSOLUTE IMPRECISION IN FAST TABLE FORCE: 1.05879e-022 AT 11.8295
+Info: RELATIVE IMPRECISION IN FAST TABLE FORCE: 2.56642e-014 AT 11.9138
+Info: INCONSISTENCY IN FAST TABLE ENERGY VS FORCE: 0.00179416 AT 12.039
+Info: ABSOLUTE IMPRECISION IN SCOR TABLE FORCE: 1.05879e-022 AT 11.8295
+Info: RELATIVE IMPRECISION IN SCOR TABLE FORCE: 2.90665e-016 AT 11.8295
+Info: INCONSISTENCY IN SCOR TABLE ENERGY VS FORCE: 0.00154963 AT 11.8717
+Info: INCONSISTENCY IN SLOW TABLE ENERGY VS FORCE: 0.000328258 AT 8.9687
+Info: ABSOLUTE IMPRECISION IN VDWA TABLE ENERGY: 9.86076e-032 AT 11.8295
+Info: RELATIVE IMPRECISION IN VDWA TABLE ENERGY: 6.75473e-014 AT 11.9138
+Info: ABSOLUTE IMPRECISION IN VDWA TABLE FORCE: 4.62223e-032 AT 11.9138
+Info: RELATIVE IMPRECISION IN VDWA TABLE FORCE: 2.12237e-015 AT 11.9138
+Info: INCONSISTENCY IN VDWA TABLE ENERGY VS FORCE: 0.0040507 AT 0.251946
+Info: ABSOLUTE IMPRECISION IN VDWB TABLE ENERGY: 4.1359e-025 AT 11.8295
+Info: RELATIVE IMPRECISION IN VDWB TABLE ENERGY: 7.56853e-015 AT 11.9138
+Info: ABSOLUTE IMPRECISION IN VDWB TABLE FORCE: 3.87741e-026 AT 11.9138
+Info: RELATIVE IMPRECISION IN VDWB TABLE FORCE: 5.97409e-016 AT 11.9138
+Info: INCONSISTENCY IN VDWB TABLE ENERGY VS FORCE: 0.00150189 AT 0.251946
+Info: Updated CUDA LJ table with 89 x 89 elements.
+Info: Updated CUDA force table with 4096 elements.
+Info: Startup phase 2 took 0.0680001 s, 110.031 MB of memory in use
+Info: Startup phase 3 took 0.000999928 s, 110.504 MB of memory in use
+Info: Startup phase 4 took 0.00100017 s, 111.938 MB of memory in use
+Info: Startup phase 5 took 0 s, 111.938 MB of memory in use
+Info: PATCH GRID IS 4 (PERIODIC) BY 4 (PERIODIC) BY 5 (PERIODIC)
+Info: PATCH GRID IS 1-AWAY BY 1-AWAY BY 1-AWAY
+Info: Reading from binary file out/10-min-wat/00001.restart.vel
+Info: REMOVING COM VELOCITY 0.000493491 0.000114122 0.00097395
+Info: LARGEST PATCH (21) HAS 819 ATOMS
+Info: TORUS A SIZE 4 USING 0
+Info: TORUS B SIZE 1 USING 0
+Info: TORUS C SIZE 1 USING 0
+Info: TORUS MINIMAL MESH SIZE IS 1 BY 1 BY 1
+Info: Placed 100% of base nodes on same physical node as patch
+Info: Startup phase 6 took 0.0109999 s, 121.664 MB of memory in use
+Info: PME using 4 and 4 processors for FFT and reciprocal sum.
+Info: PME GRID LOCATIONS: 0 1 2 3
+Info: PME TRANS LOCATIONS: 0 1 2 3
+Info: PME USING 1 GRID NODES AND 1 TRANS NODES
+Info: Optimizing 4 FFT steps.  1... 2... 3... 4...   Done.
+Info: Startup phase 7 took 0.00200009 s, 127.055 MB of memory in use
+Info: Startup phase 8 took 0 s, 127.059 MB of memory in use
+Info: Startup phase 9 took 0 s, 127.063 MB of memory in use
+Info: CREATING 1708 COMPUTE OBJECTS
+CUDA device 0 supports concurrent kernels.
+Info: Found 339 unique exclusion lists needing 1112 bytes
+Pe 2 hosts 10 local and 10 remote patches for pe 2
+Pe 0 hosts 10 local and 10 remote patches for pe 2
+Pe 1 hosts 10 local and 10 remote patches for pe 2
+Pe 3 hosts 10 local and 10 remote patches for pe 2
+Info: useSync: 1 useProxySync: 0
+Info: Startup phase 10 took 0.013 s, 129.961 MB of memory in use
+Info: Startup phase 11 took 0 s, 129.961 MB of memory in use
+Info: Startup phase 12 took 0.000999928 s, 141.406 MB of memory in use
+Info: Finished startup at 0.875 s, 141.406 MB of memory in use
+
+TCL: Running for 500020 steps
+Pe 2 has 40 local and 40 remote patches and 1080 local and 1080 remote computes.
+ETITLE:      TS           BOND          ANGLE          DIHED          IMPRP               ELECT            VDW       BOUNDARY           MISC        KINETIC               TOTAL           TEMP      POTENTIAL         TOTAL3        TEMPAVG            PRESSURE      GPRESSURE         VOLUME       PRESSAVG      GPRESSAVG
+
+ENERGY:       0      1651.1803      4684.1140      2136.8895       284.8402        -212007.4026     15292.9004         0.0000         0.0000     37912.6768        -150044.8014       297.7670   -187957.4782   -149907.2564       297.7670            407.6427      -119.0594    607574.0987       407.6427      -119.0594
+
+OPENING EXTENDED SYSTEM TRAJECTORY FILE
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+Info: Initial time: 4 CPUs 0.02723 s/step 0.157581 days/ns 224.27 MB memory
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+Info: Initial time: 4 CPUs 0.02736 s/step 0.158333 days/ns 221.219 MB memory
+Info: useSync: 1 useProxySync: 0
+Info: Initial time: 4 CPUs 0.02715 s/step 0.157118 days/ns 222.363 MB memory
+Info: useSync: 1 useProxySync: 0
+Info: Benchmark time: 4 CPUs 0.02719 s/step 0.15735 days/ns 223.145 MB memory
+Info: Benchmark time: 4 CPUs 0.0272 s/step 0.157407 days/ns 222.828 MB memory
+Info: Benchmark time: 4 CPUs 0.02673 s/step 0.154687 days/ns 223.727 MB memory
+Info: Benchmark time: 4 CPUs 0.02656 s/step 0.153704 days/ns 225.711 MB memory
+Info: Benchmark time: 4 CPUs 0.02678 s/step 0.154977 days/ns 227.363 MB memory
+Info: Benchmark time: 4 CPUs 0.0268 s/step 0.155093 days/ns 226.391 MB memory
+ENERGY:    2500      1643.5394      4672.7166      2151.3344       309.2371        -212423.4018     15576.5425         0.0000         0.0000     38127.2536        -149942.7782       299.4523   -188070.0318   -149805.5507       298.9631            407.5682      -123.8577    607730.4151        -0.6624        -0.7252
+
+OPENING COORDINATE DCD FILE
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:    5000      1732.3826      4622.5813      2150.4717       307.5188        -212324.9194     15768.1119         0.0000         0.0000     37972.0659        -149771.7871       298.2334   -187743.8530   -149623.1694       299.3608            461.5879       -68.6788    606164.8698         1.4523         1.4520
+
+ENERGY:    7500      1686.9857      4673.2193      2139.8135       291.9198        -212067.4539     15641.8633         0.0000         0.0000     37879.1451        -149754.5072       297.5036   -187633.6523   -149616.9759       299.3609            469.1489       -55.3145    606826.6930        -1.8407        -1.8750
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:   10000      1651.2009      4718.1569      2088.7657       305.6164        -212510.2141     15434.9286         0.0000         0.0000     38175.3932        -150136.1524       299.8304   -188311.5456   -149999.1356       298.7281            310.5810      -217.5224    605826.9044        -1.9786        -2.0159
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:   12500      1688.0483      4695.7122      2101.5674       282.1009        -212753.6100     15770.0044         0.0000         0.0000     38048.1826        -150167.9942       298.8313   -188216.1768   -150026.7219       298.4940            481.3117       -44.5682    605561.9341         6.8605         6.8637
+
+ENERGY:   15000      1664.8151      4677.1799      2116.5314       291.9224        -212875.7625     15907.4678         0.0000         0.0000     38132.2589        -150085.5870       299.4916   -188217.8459   -149940.1783       298.9883            594.8032        71.2299    605633.9053         0.2164         0.2146
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:   17500      1634.0596      4637.7394      2151.1734       291.1818        -212933.3033     15888.7600         0.0000         0.0000     38352.0324        -149978.3568       301.2177   -188330.3892   -149835.6055       299.3814            756.4524       225.2382    603306.5840         3.3644         3.3384
+
+ENERGY:   20000      1619.6876      4660.4599      2190.4676       280.2688        -212481.2428     15827.1524         0.0000         0.0000     38196.2578        -149706.9488       299.9942   -187903.2066   -149566.6814       299.4719            633.2152       105.5795    604740.6380         2.9737         2.9801
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:   22500      1661.6832      4700.8328      2147.8482       276.9849        -212660.9821     15812.3100         0.0000         0.0000     38067.2030        -149994.1201       298.9806   -188061.3230   -149854.5545       300.0787            607.1989        75.4276    603712.7685         3.4381         3.4556
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+TIMING: 25000  CPU: 677.758, 0.0271069/step  Wall: 677.758, 0.0271069/step, 3.57676 hours remaining, 235.355469 MB of memory in use.
+ETITLE:      TS           BOND          ANGLE          DIHED          IMPRP               ELECT            VDW       BOUNDARY           MISC        KINETIC               TOTAL           TEMP      POTENTIAL         TOTAL3        TEMPAVG            PRESSURE      GPRESSURE         VOLUME       PRESSAVG      GPRESSAVG
+
+ENERGY:   25000      1664.4102      4653.8844      2182.3043       284.6662        -212560.0086     15650.5685         0.0000         0.0000     38237.3490        -149886.8260       300.3170   -188124.1750   -149740.7452       299.3338            565.8052        34.3257    605603.8428         0.4874         0.4989
+
+ENERGY:   27500      1700.8805      4695.1108      2171.6413       294.6419        -212652.8769     15592.5321         0.0000         0.0000     38227.7787        -149970.2916       300.2418   -188198.0703   -149822.5346       299.5339            472.3099       -57.1067    604988.2850         0.0909         0.1238
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:   30000      1689.5276      4637.5428      2093.4979       290.7065        -212440.5798     15794.3549         0.0000         0.0000     38052.1974        -149882.7527       298.8628   -187934.9501   -149741.4790       300.0153            565.8642        39.9957    604227.5537         2.3773         2.4114
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:   32500      1622.2211      4680.1370      2139.4577       286.2428        -212406.7741     15665.7147         0.0000         0.0000     38311.8407        -149701.1601       300.9020   -188013.0008   -149563.0511       299.6800            535.7485         9.0519    604242.7853         0.6502         0.6338
+
+ENERGY:   35000      1647.2215      4606.2932      2139.9217       298.3329        -212044.0547     15558.6370         0.0000         0.0000     38062.9303        -149730.7180       298.9471   -187793.6483   -149598.3475       300.2226            584.0877        53.4836    606211.4806         4.0089         4.0484
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:   37500      1710.8172      4677.2014      2133.4568       296.4570        -212974.9591     15822.6845         0.0000         0.0000     38378.9759        -149955.3663       301.4293   -188334.3421   -149817.3020       299.8753            555.3550        26.1593    603419.6050        -1.4916        -1.4799
+
+ENERGY:   40000      1695.7269      4705.2849      2144.2803       288.3754        -212985.5219     15704.8286         0.0000         0.0000     38038.7048        -150408.3210       298.7568   -188447.0258   -150271.6710       299.5959            556.4071        22.9311    603270.0816         4.0552         4.0684
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:   42500      1676.9766      4657.4534      2073.6492       276.5615        -212617.4190     15594.9081         0.0000         0.0000     37998.8425        -150339.0276       298.4437   -188337.8701   -150202.7282       298.6433            576.2223        45.6249    602850.3140        -1.6792        -1.7509
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:   45000      1674.0894      4601.9279      2137.9001       295.1448        -212552.2519     15872.3358         0.0000         0.0000     38374.7822        -149596.0719       301.3964   -187970.8540   -149451.8760       300.0417            610.5471        78.5222    605654.2019         1.6413         1.6235
+
+ENERGY:   47500      1598.2685      4749.7410      2138.0984       289.1506        -212464.8813     15660.5109         0.0000         0.0000     38070.0528        -149959.0591       299.0030   -188029.1119   -149818.4774       300.0834            387.4123      -142.1282    605041.6539         6.1998         6.2515
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+TIMING: 50000  CPU: 1342.39, 0.0265852/step  Wall: 1342.39, 0.0265852/step, 3.32329 hours remaining, 234.160156 MB of memory in use.
+ETITLE:      TS           BOND          ANGLE          DIHED          IMPRP               ELECT            VDW       BOUNDARY           MISC        KINETIC               TOTAL           TEMP      POTENTIAL         TOTAL3        TEMPAVG            PRESSURE      GPRESSURE         VOLUME       PRESSAVG      GPRESSAVG
+
+ENERGY:   50000      1671.5153      4713.3113      2127.8899       317.4205        -212560.3832     15824.6789         0.0000         0.0000     38035.5429        -149870.0243       298.7320   -187905.5672   -149731.7663       299.3274            645.5977       117.0456    604495.5309         1.0356         0.9847
+
+WRITING EXTENDED SYSTEM TO RESTART FILE AT STEP 50002
+FINISHED WRITING RESTART COORDINATES
+WRITING VELOCITIES TO RESTART FILE AT STEP 50002
+FINISHED WRITING RESTART VELOCITIES
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:   52500      1713.3135      4675.5470      2093.2582       293.2853        -212409.4548     15508.7934         0.0000         0.0000     38216.5696        -149908.6879       300.1538   -188125.2575   -149776.0051       299.1693            486.4040       -40.3767    605410.5377         3.6894         3.6341
+
+ENERGY:   55000      1663.1977      4823.0324      2119.5487       299.2007        -212714.3141     15573.3005         0.0000         0.0000     38009.3833        -150226.6509       298.5265   -188236.0342   -150091.1864       299.8381            591.1734        55.6854    604064.1925         0.7787         0.7727
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:   57500      1673.4192      4613.5318      2097.3153       298.8043        -212944.6658     15722.9552         0.0000         0.0000     38033.3478        -150505.2923       298.7147   -188538.6400   -150361.4927       298.7213            513.1899       -15.3265    604320.6396         7.0890         7.1587
+
+ENERGY:   60000      1689.6495      4717.4021      2099.7700       281.9299        -212342.7372     15323.0330         0.0000         0.0000     38043.8566        -150187.0960       298.7973   -188230.9526   -150042.2247       298.2506            347.7273      -176.9124    605106.8461        -0.0311        -0.0497
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:   62500      1645.1380      4651.5966      2148.8593       282.9277        -212205.7118     15270.4160         0.0000         0.0000     38239.2536        -149967.5207       300.3319   -188206.7743   -149834.6308       299.4478            438.8222       -95.7106    603809.3762        -0.9042        -0.9165
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:   65000      1611.9396      4710.5049      2108.9841       282.7300        -212653.6393     15409.6556         0.0000         0.0000     38102.2750        -150427.5501       299.2561   -188529.8250   -150286.8159       299.4269            334.0852      -189.8713    607463.9494        -2.0348        -2.0686
+
+ENERGY:   67500      1680.1172      4669.7765      2142.2256       293.5709        -212533.4718     15571.3091         0.0000         0.0000     38293.0756        -149883.3969       300.7547   -188176.4725   -149752.4748       299.4551            476.2335       -56.2243    603778.2625        -2.2733        -2.2228
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:   70000      1594.2088      4673.9653      2090.7104       297.4843        -212752.0214     15579.6616         0.0000         0.0000     38169.4028        -150346.5882       299.7833   -188515.9911   -150202.4705       299.4181            558.0876        24.7202    603877.3624         4.0230         3.9507
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:   72500      1675.4427      4532.0762      2118.4839       320.8824        -213500.6661     16119.5916         0.0000         0.0000     38209.6075        -150524.5818       300.0991   -188734.1892   -150378.9571       299.0521            700.2143       170.5028    605807.9982        -0.6349        -0.6275
+
+TIMING: 75000  CPU: 2012.52, 0.0268052/step  Wall: 2012.52, 0.0268052/step, 3.16466 hours remaining, 240.890625 MB of memory in use.
+ETITLE:      TS           BOND          ANGLE          DIHED          IMPRP               ELECT            VDW       BOUNDARY           MISC        KINETIC               TOTAL           TEMP      POTENTIAL         TOTAL3        TEMPAVG            PRESSURE      GPRESSURE         VOLUME       PRESSAVG      GPRESSAVG
+
+ENERGY:   75000      1567.7373      4603.3204      2097.3425       301.3377        -212447.4890     15620.6745         0.0000         0.0000     38061.9010        -150195.1755       298.9390   -188257.0766   -150058.5548       298.6519            571.8930        42.7832    605199.7789         1.2975         1.2532
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:   77500      1725.4874      4645.1662      2101.9108       310.0103        -212367.3754     15588.1832         0.0000         0.0000     37857.8682        -150138.7492       297.3365   -187996.6174   -149993.6683       298.8963            502.8404       -26.1015    606655.8412         2.2617         2.2701
+
+ENERGY:   80000      1709.5474      4631.7903      2139.6604       303.9392        -212711.1050     15514.3571         0.0000         0.0000     38132.2296        -150279.5810       299.4914   -188411.8106   -150143.5110       298.9817            518.6699        -9.3118    604521.0337        -1.6608        -1.6092
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:   82500      1622.4577      4608.1144      2129.3145       323.2705        -212460.2578     15658.7554         0.0000         0.0000     38118.8620        -149999.4833       299.3864   -188118.3453   -149859.4137       299.6150            561.9691        28.8623    605656.2876         6.2510         6.2957
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:   85000      1675.2795      4598.9080      2092.0142       277.9205        -212379.0147     15603.6289         0.0000         0.0000     37987.3495        -150143.9141       298.3535   -188131.2636   -150001.7874       299.5023            418.0996      -119.7562    602996.7886         1.9234         1.9133
+
+ENERGY:   87500      1641.3058      4626.1306      2117.2607       302.7490        -212566.7977     15576.9123         0.0000         0.0000     38019.0857        -150283.3535       298.6027   -188302.4392   -150140.9715       299.0887            483.8586       -46.0380    604394.0666        -1.4383        -1.4452
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:   90000      1672.8132      4651.1675      2098.7547       293.8721        -212819.3740     15608.2864         0.0000         0.0000     38003.6075        -150490.8726       298.4812   -188494.4802   -150352.7015       298.7054            481.8754       -48.7561    604791.2764        -0.3339        -0.2912
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:   92500      1703.1413      4719.5581      2074.9014       286.4362        -212457.0671     15367.0254         0.0000         0.0000     38069.7074        -150236.2973       299.0003   -188306.0048   -150089.0318       298.3964            367.7801      -155.7750    604578.7800         5.4358         5.4431
+
+ENERGY:   95000      1606.8942      4718.9706      2112.9479       289.1717        -212435.9163     15511.5122         0.0000         0.0000     37896.2099        -150300.2100       297.6377   -188196.4198   -150161.6766       299.3593            555.5102        30.2498    604751.9906         2.8799         2.8583
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:   97500      1607.5544      4767.3260      2158.7228       297.0216        -212728.1618     15703.0679         0.0000         0.0000     38013.9978        -150180.4713       298.5628   -188194.4691   -150046.4634       298.8513            683.0520       155.0369    604632.8694         0.8211         0.8170
+
+TIMING: 100000  CPU: 2679.75, 0.0266891/step  Wall: 2679.75, 0.0266891/step, 2.96561 hours remaining, 240.273438 MB of memory in use.
+ETITLE:      TS           BOND          ANGLE          DIHED          IMPRP               ELECT            VDW       BOUNDARY           MISC        KINETIC               TOTAL           TEMP      POTENTIAL         TOTAL3        TEMPAVG            PRESSURE      GPRESSURE         VOLUME       PRESSAVG      GPRESSAVG
+
+ENERGY:  100000      1700.0143      4699.4338      2115.2244       281.7693        -212581.2556     15661.6259         0.0000         0.0000     38164.3533        -149958.8346       299.7437   -188123.1879   -149816.5210       298.8757            399.7700      -129.3380    606913.3436        -0.1041        -0.1360
+
+WRITING EXTENDED SYSTEM TO RESTART FILE AT STEP 100004
+FINISHED WRITING RESTART COORDINATES
+WRITING VELOCITIES TO RESTART FILE AT STEP 100004
+FINISHED WRITING RESTART VELOCITIES
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  102500      1773.7116      4757.3661      2099.3202       289.9537        -211985.9715     15255.5899         0.0000         0.0000     37853.7565        -149956.2735       297.3042   -187810.0300   -149827.8341       299.5779            361.5695      -167.2295    605391.4896        -1.3433        -1.3313
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  105000      1637.2652      4722.7712      2179.7916       290.6971        -212450.6755     15546.9655         0.0000         0.0000     38331.4665        -149741.7184       301.0562   -188073.1849   -149608.4438       300.5638            579.4485        49.5963    603973.9711        -0.4280        -0.3937
+
+ENERGY:  107500      1618.1663      4714.9707      2131.9840       305.8981        -212166.6675     15297.1425         0.0000         0.0000     38102.6118        -149995.8941       299.2587   -188098.5060   -149849.3111       300.1694            544.8986        16.3853    605182.6329         2.3168         2.3604
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  110000      1680.6543      4641.0927      2115.4056       311.7509        -212602.1645     15596.5980         0.0000         0.0000     38101.5808        -150155.0824       299.2506   -188256.6631   -150012.4533       299.5823            518.8075        -6.9345    605706.1305        -0.8855        -0.8534
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  112500      1698.3772      4677.6981      2090.9958       297.8967        -212523.3377     15721.2284         0.0000         0.0000     38420.6020        -149616.5395       301.7562   -188037.1415   -149480.8429       299.9654            516.8996       -10.8772    605739.8591        -2.9150        -2.9404
+
+ENERGY:  115000      1724.9473      4662.7614      2119.1847       270.2836        -213218.6940     15890.6369         0.0000         0.0000     38099.3204        -150451.5597       299.2329   -188550.8801   -150319.3098       300.2143            725.0759       189.5296    603172.5254         2.2888         2.2698
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  117500      1704.8702      4722.7915      2104.4989       293.1477        -212444.5178     15447.0567         0.0000         0.0000     37969.5671        -150202.5856       298.2138   -188172.1528   -150071.3569       298.4097            375.1466      -152.1563    605162.8098        -1.7200        -1.7131
+
+ENERGY:  120000      1685.1360      4687.3124      2079.0412       313.7469        -212852.2865     15650.1508         0.0000         0.0000     37943.1584        -150493.7409       298.0064   -188436.8993   -150355.1542       298.7915            451.7063       -78.2548    604152.7305        -0.0569        -0.0407
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  122500      1724.3961      4675.5854      2116.3844       297.3287        -212784.0656     15696.6597         0.0000         0.0000     38145.0302        -150128.6811       299.5919   -188273.7113   -149984.9831       299.0591            572.2677        35.2101    604541.6847        -0.6830        -0.6810
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+TIMING: 125000  CPU: 3356.51, 0.0270708/step  Wall: 3356.52, 0.0270708/step, 2.82002 hours remaining, 240.621094 MB of memory in use.
+ETITLE:      TS           BOND          ANGLE          DIHED          IMPRP               ELECT            VDW       BOUNDARY           MISC        KINETIC               TOTAL           TEMP      POTENTIAL         TOTAL3        TEMPAVG            PRESSURE      GPRESSURE         VOLUME       PRESSAVG      GPRESSAVG
+
+ENERGY:  125000      1651.5002      4724.2967      2123.0150       303.0342        -212050.4504     15180.1845         0.0000         0.0000     38240.6996        -149827.7202       300.3433   -188068.4198   -149689.8996       299.2366            227.5371      -298.0283    604786.6294         0.4407         0.4474
+
+ENERGY:  127500      1600.9881      4617.2349      2186.6746       305.8791        -212593.3573     15600.9642         0.0000         0.0000     37989.9777        -150291.6388       298.3741   -188281.6165   -150151.8017       299.2647            735.4750       200.4239    603492.3391         2.9532         2.9187
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  130000      1606.7641      4637.3746      2084.0750       266.3740        -212106.0353     15408.5656         0.0000         0.0000     38033.5353        -150069.3467       298.7162   -188102.8820   -149923.9378       299.2850            449.5471       -79.1124    604494.2217         3.2299         3.2459
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  132500      1650.9084      4676.5785      2125.0662       307.5282        -212237.1537     15404.7214         0.0000         0.0000     38195.3763        -149876.9748       299.9873   -188072.3511   -149738.9506       299.7573            474.7400       -56.6224    605488.5448         1.3162         1.3144
+
+ENERGY:  135000      1718.3089      4707.4897      2095.6475       305.2215        -212197.9120     15298.7892         0.0000         0.0000     38137.9312        -149934.5241       299.5361   -188072.4553   -149798.4228       299.4852            348.0703      -181.6999    604642.2764         0.5953         0.6021
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  137500      1656.2351      4614.7845      2089.2304       287.2669        -212547.1828     15721.6780         0.0000         0.0000     38147.4841        -150030.5037       299.6112   -188177.9877   -149888.1543       300.3627            655.9361       129.0215    604891.8786        -0.3006        -0.3434
+
+ENERGY:  140000      1676.5501      4715.1860      2043.6842       274.3589        -212195.2146     15440.9022         0.0000         0.0000     38105.3895        -149939.1437       299.2806   -188044.5332   -149801.4506       299.6599            494.6805       -31.2470    605788.7004        -1.6815        -1.6431
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  142500      1701.0857      4697.7462      2070.8650       287.1180        -212609.2536     15556.1932         0.0000         0.0000     38285.6189        -150010.6265       300.6961   -188296.2455   -149874.3706       299.7551            488.1344       -42.4135    603966.9609        -0.7554        -0.7606
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  145000      1690.2887      4678.3235      2125.7788       297.7525        -212732.8666     15676.5250         0.0000         0.0000     38511.6617        -149752.5364       302.4714   -188264.1981   -149612.0568       300.2870            300.5131      -222.7806    607295.9535         1.0617         1.0693
+
+ENERGY:  147500      1717.3140      4667.9264      2103.4907       293.4694        -212603.8715     15613.2541         0.0000         0.0000     37916.1780        -150292.2389       297.7945   -188208.4169   -150157.3390       299.9854            442.4260       -88.5724    604811.2356        -1.8358        -1.7610
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+TIMING: 150000  CPU: 4032.09, 0.0270232/step  Wall: 4032.09, 0.0270232/step, 2.6274 hours remaining, 241.417969 MB of memory in use.
+ETITLE:      TS           BOND          ANGLE          DIHED          IMPRP               ELECT            VDW       BOUNDARY           MISC        KINETIC               TOTAL           TEMP      POTENTIAL         TOTAL3        TEMPAVG            PRESSURE      GPRESSURE         VOLUME       PRESSAVG      GPRESSAVG
+
+ENERGY:  150000      1647.3419      4624.8481      2127.0197       300.0846        -212391.9909     15357.1842         0.0000         0.0000     37999.4955        -150336.0169       298.4489   -188335.5125   -150199.0219       298.4170            452.8559       -73.8628    604009.3841         0.8339         0.8840
+
+WRITING EXTENDED SYSTEM TO RESTART FILE AT STEP 150006
+FINISHED WRITING RESTART COORDINATES
+WRITING VELOCITIES TO RESTART FILE AT STEP 150006
+FINISHED WRITING RESTART VELOCITIES
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  152500      1675.7100      4577.0804      2049.8912       293.7185        -212540.1796     15456.4318         0.0000         0.0000     37938.0270        -150549.3206       297.9661   -188487.3476   -150402.8589       298.6926            429.2368      -101.5500    604082.4362         3.6413         3.6467
+
+ENERGY:  155000      1655.3372      4634.6761      2125.3454       279.0308        -212332.3149     15488.8425         0.0000         0.0000     37930.1515        -150218.9315       297.9042   -188149.0830   -150077.2846       298.3897            491.9154       -42.3160    605251.7673         0.8008         0.7485
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  157500      1639.6794      4675.2356      2115.7917       284.9876        -212914.6136     15568.8138         0.0000         0.0000     38265.6227        -150364.4828       300.5390   -188630.1055   -150223.0180       298.9715            536.7715         6.5345    604129.7212        -2.7480        -2.8035
+
+ENERGY:  160000      1613.2305      4596.2671      2115.7828       297.3052        -213063.3691     15954.2567         0.0000         0.0000     37993.3463        -150493.1805       298.4006   -188486.5268   -150359.3699       299.0538            738.3694       213.9686    605700.7814         2.6780         2.6997
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  162500      1651.3023      4720.2421      2146.9134       312.3818        -212459.3967     15353.1888         0.0000         0.0000     38315.5679        -149959.8003       300.9313   -188275.3682   -149816.4638       298.7920            534.0977        -1.4383    603955.9839        -0.4964        -0.4896
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  165000      1597.8635      4666.6733      2128.5495       273.7933        -213042.4587     15731.6513         0.0000         0.0000     37904.8043        -150739.1236       297.7052   -188643.9279   -150603.1809       299.1338            686.9938       156.4022    604051.6318        -1.2148        -1.2053
+
+ENERGY:  167500      1734.3304      4592.3242      2147.2427       302.5886        -212435.4915     15315.7518         0.0000         0.0000     37905.3695        -150437.8843       297.7096   -188343.2538   -150296.7728       298.4426            440.0445       -91.7050    604719.1769         1.0101         0.9795
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  170000      1672.9784      4677.7765      2120.1935       307.9924        -212296.7176     15476.4353         0.0000         0.0000     37882.7547        -150158.5869       297.5320   -188041.3416   -150016.0385       298.9826            503.1883       -21.8212    605421.6022         1.2646         1.2399
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  172500      1715.6493      4681.5874      2089.2918       293.6443        -212127.8059     15348.0031         0.0000         0.0000     38067.4722        -149932.1578       298.9828   -187999.6300   -149793.9225       299.5667            302.7574      -226.1801    605817.6979         2.0382         2.0845
+
+TIMING: 175000  CPU: 4704.48, 0.0268954/step  Wall: 4704.48, 0.0268954/step, 2.42821 hours remaining, 241.386719 MB of memory in use.
+ETITLE:      TS           BOND          ANGLE          DIHED          IMPRP               ELECT            VDW       BOUNDARY           MISC        KINETIC               TOTAL           TEMP      POTENTIAL         TOTAL3        TEMPAVG            PRESSURE      GPRESSURE         VOLUME       PRESSAVG      GPRESSAVG
+
+ENERGY:  175000      1680.3936      4605.0225      2107.5030       290.7560        -213313.4075     15928.0659         0.0000         0.0000     38187.2926        -150514.3739       299.9238   -188701.6664   -150369.1471       299.2018            718.8057       185.9485    604035.2603         2.0448         2.0121
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  177500      1617.5198      4748.3483      2112.1973       308.4962        -212686.9715     15642.9974         0.0000         0.0000     38591.6060        -149665.8065       303.0993   -188257.4124   -149514.6623       299.1817            539.4669         9.5371    605846.2295         1.7716         1.8042
+
+ENERGY:  180000      1609.5221      4657.7505      2094.6686       315.5320        -213119.7391     15643.2569         0.0000         0.0000     38127.9988        -150671.0101       299.4581   -188799.0088   -150540.6932       299.3640            555.6735        23.2492    604224.0655         1.7580         1.7569
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  182500      1676.8615      4705.2427      2104.5110       306.6968        -212693.9688     15631.4701         0.0000         0.0000     38386.2217        -149882.9651       301.4862   -188269.1868   -149751.7322       299.5390            537.5515         6.3460    605044.5805        -0.9663        -0.9590
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  185000      1642.4458      4613.9760      2089.7057       296.9263        -212629.0828     15595.6200         0.0000         0.0000     38315.5623        -150074.8468       300.9313   -188390.4090   -149930.4252       299.6393            440.3500       -91.1904    605559.2666        -0.8427        -0.8259
+
+ENERGY:  187500      1634.9163      4671.3185      2104.6459       284.5200        -212445.6489     15535.0248         0.0000         0.0000     38011.2201        -150204.0033       298.5410   -188215.2234   -150067.0666       299.4716            609.3707        77.1258    604054.4942        -0.2012        -0.2312
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  190000      1675.0419      4724.2501      2097.2422       275.5953        -212240.5508     15361.1883         0.0000         0.0000     37974.7439        -150132.4892       298.2545   -188107.2331   -149991.0293       299.6236            519.2077       -14.0431    604660.2225         3.9789         4.0326
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  192500      1754.2542      4550.6628      2098.2319       287.5983        -212647.4351     15435.9922         0.0000         0.0000     38094.4712        -150426.2245       299.1948   -188520.6957   -150291.5503       299.0249            459.8575       -68.3761    604632.7631         1.5565         1.5674
+
+ENERGY:  195000      1667.9305      4732.7992      2127.9941       319.3739        -213078.2704     15828.4376         0.0000         0.0000     38114.1709        -150287.5642       299.3495   -188401.7350   -150145.4376       299.1499            559.8908        26.9518    603508.3871         3.7643         3.7831
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  197500      1670.2182      4656.3552      2092.0230       298.0257        -212870.8669     15647.2394         0.0000         0.0000     38080.0311        -150426.9744       299.0814   -188507.0055   -150283.0873       298.7382            552.2574        21.9220    604701.9627         5.4397         5.5142
+
+TIMING: 200000  CPU: 5376.65, 0.026887/step  Wall: 5376.65, 0.026887/step, 2.24073 hours remaining, 241.468750 MB of memory in use.
+ETITLE:      TS           BOND          ANGLE          DIHED          IMPRP               ELECT            VDW       BOUNDARY           MISC        KINETIC               TOTAL           TEMP      POTENTIAL         TOTAL3        TEMPAVG            PRESSURE      GPRESSURE         VOLUME       PRESSAVG      GPRESSAVG
+
+ENERGY:  200000      1673.9960      4715.0837      2128.8344       300.5411        -212739.8092     15623.6714         0.0000         0.0000     38337.5492        -149960.1335       301.1040   -188297.6827   -149818.7865       298.8792            671.8579       142.8084    604348.2667        -0.1856        -0.2284
+
+WRITING EXTENDED SYSTEM TO RESTART FILE AT STEP 200008
+FINISHED WRITING RESTART COORDINATES
+WRITING VELOCITIES TO RESTART FILE AT STEP 200008
+FINISHED WRITING RESTART VELOCITIES
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  202500      1644.5099      4745.2346      2125.9484       313.8420        -212684.9362     15351.3237         0.0000         0.0000     38332.2179        -150171.8598       301.0621   -188504.0777   -150028.0715       300.0407            639.3544       105.4424    602620.7233        -4.0836        -4.0733
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  205000      1669.1868      4714.2792      2084.7551       285.8130        -213114.8148     15845.3758         0.0000         0.0000     38200.4655        -150314.9393       300.0273   -188515.4048   -150181.4632       298.9583            496.7854       -40.6542    603659.6301        -1.1146        -1.1069
+
+ENERGY:  207500      1678.9371      4644.1245      2072.6920       279.4890        -212683.1068     15540.0867         0.0000         0.0000     38032.2312        -150435.5462       298.7060   -188467.7774   -150292.0166       298.7943            482.7783       -52.3661    603472.1038        -0.1913        -0.1604
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  210000      1627.7696      4648.7065      2129.7844       307.7995        -212940.1351     15712.3386         0.0000         0.0000     38090.2831        -150423.4534       299.1619   -188513.7365   -150274.7083       299.1727            562.1545        31.0474    603378.5434        -1.1477        -1.1656
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  212500      1701.3874      4719.6937      2081.8508       296.5295        -212932.4831     15711.1783         0.0000         0.0000     37991.7291        -150430.1143       298.3879   -188421.8434   -150286.8361       298.7820            518.9330        -9.4646    604847.4967         0.7338         0.7220
+
+ENERGY:  215000      1609.2375      4744.6901      2089.9667       283.9485        -212684.6848     15540.4854         0.0000         0.0000     38257.6901        -150158.6664       300.4767   -188416.3565   -150013.2436       298.6803            675.3861       145.4336    603501.5502         1.8730         1.8839
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  217500      1645.2924      4641.7828      2117.7572       291.5378        -212929.3356     15687.7151         0.0000         0.0000     38173.5758        -150371.6745       299.8161   -188545.2504   -150240.3094       298.7571            432.2869       -98.4175    605690.1513        -2.2360        -2.2435
+
+ENERGY:  220000      1642.3683      4615.0062      2136.3871       278.3366        -212928.8645     15727.9522         0.0000         0.0000     37740.0577        -150788.7565       296.4112   -188528.8141   -150645.8045       298.8182            561.3565        26.8968    603366.5878        -1.0146        -0.9772
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  222500      1618.6254      4702.0772      2158.1603       291.1179        -212429.4687     15613.1758         0.0000         0.0000     38094.1158        -149952.1965       299.1920   -188046.3123   -149808.5909       299.0734            556.3595        21.7395    604441.5792        -0.9664        -0.9616
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+TIMING: 225000  CPU: 6047.32, 0.0268266/step  Wall: 6047.32, 0.0268266/step, 2.0494 hours remaining, 241.019531 MB of memory in use.
+ETITLE:      TS           BOND          ANGLE          DIHED          IMPRP               ELECT            VDW       BOUNDARY           MISC        KINETIC               TOTAL           TEMP      POTENTIAL         TOTAL3        TEMPAVG            PRESSURE      GPRESSURE         VOLUME       PRESSAVG      GPRESSAVG
+
+ENERGY:  225000      1694.8042      4701.9550      2134.4506       302.6465        -212555.9944     15798.3010         0.0000         0.0000     37999.9860        -149923.8511       298.4527   -187923.8371   -149792.6287       299.8182            440.5465       -89.3638    606284.9901         0.6995         0.6999
+
+ENERGY:  227500      1645.8486      4693.6600      2171.1652       282.6007        -212495.6013     15482.7965         0.0000         0.0000     38126.3968        -150093.1334       299.4456   -188219.5302   -149953.4927       299.4321            456.0197       -70.5300    605283.1922        -1.0094        -0.9885
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  230000      1657.5147      4659.3247      2164.9715       280.8772        -212537.5271     15364.4971         0.0000         0.0000     38313.9039        -150096.4379       300.9182   -188410.3418   -149958.4843       299.3474            483.3289       -47.5807    604317.8251         2.5312         2.5252
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  232500      1629.0298      4652.9376      2147.8722       286.6495        -211982.2796     15265.7567         0.0000         0.0000     38026.8035        -149973.2302       298.6633   -188000.0337   -149833.7714       299.5679            424.4438      -108.3895    604276.8080         1.3308         1.3147
+
+ENERGY:  235000      1636.2890      4751.2366      2110.2192       293.1911        -212860.8515     15611.7856         0.0000         0.0000     38167.2513        -150290.8787       299.7664   -188458.1300   -150153.5194       298.9908            488.0409       -40.3581    606586.5407        -1.4937        -1.5651
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  237500      1679.0641      4608.4219      2140.5475       314.5842        -212805.9896     15622.4264         0.0000         0.0000     38038.6153        -150402.3302       298.7561   -188440.9454   -150260.1797       299.1443            463.1225       -64.6444    604899.0289         4.5784         4.6092
+
+ENERGY:  240000      1647.2114      4627.4579      2148.2914       295.2658        -213018.5619     15869.9595         0.0000         0.0000     38200.5062        -150229.8698       300.0276   -188430.3760   -150093.7720       299.0568            647.9460       118.2026    604441.4545         2.8240         2.7663
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  242500      1645.3384      4699.3331      2160.7077       290.3068        -213618.9735     15959.1940         0.0000         0.0000     38253.7515        -150610.3419       300.4458   -188864.0935   -150469.6529       298.3454            711.8986       178.3788    601927.4813         3.8202         3.7663
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  245000      1638.6358      4620.1977      2151.9021       301.6738        -212880.5486     15930.6730         0.0000         0.0000     38293.3871        -149944.0792       300.7571   -188237.4663   -149801.7305       298.9894            753.8207       225.4080    603275.5535         3.9079         3.9389
+
+ENERGY:  247500      1570.2155      4664.3168      2118.2817       272.3919        -212769.8340     15590.4583         0.0000         0.0000     38322.1162        -150232.0536       300.9827   -188554.1698   -150091.0549       299.4946            578.1827        50.5647    603702.2867        -1.5805        -1.5018
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+TIMING: 250000  CPU: 6708.39, 0.026443/step  Wall: 6708.39, 0.026443/step, 1.83647 hours remaining, 241.824219 MB of memory in use.
+ETITLE:      TS           BOND          ANGLE          DIHED          IMPRP               ELECT            VDW       BOUNDARY           MISC        KINETIC               TOTAL           TEMP      POTENTIAL         TOTAL3        TEMPAVG            PRESSURE      GPRESSURE         VOLUME       PRESSAVG      GPRESSAVG
+
+ENERGY:  250000      1717.3553      4670.8812      2065.6794       281.7836        -213027.6731     15614.9835         0.0000         0.0000     38121.4605        -150555.5295       299.4068   -188676.9901   -150407.1819       298.7633            576.9282        46.4034    603053.7733         0.1131         0.0871
+
+WRITING EXTENDED SYSTEM TO RESTART FILE AT STEP 250010
+FINISHED WRITING RESTART COORDINATES
+WRITING VELOCITIES TO RESTART FILE AT STEP 250010
+FINISHED WRITING RESTART VELOCITIES
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  252500      1689.6748      4605.0219      2113.8833       298.4941        -213076.9392     15672.4225         0.0000         0.0000     37937.8490        -150759.5936       297.9647   -188697.4426   -150631.9023       298.2682            512.6825       -16.9664    604577.8391         0.1769         0.2099
+
+ENERGY:  255000      1681.6376      4610.4257      2149.7235       297.2110        -212418.3307     15826.9800         0.0000         0.0000     37989.2277        -149863.1252       298.3682   -187852.3529   -149726.7202       298.8784            580.5613        59.2574    604801.8405        -1.7186        -1.6849
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  257500      1696.1986      4673.7971      2103.8073       300.8594        -212312.0356     15310.2510         0.0000         0.0000     38124.8327        -150102.2895       299.4333   -188227.1222   -149962.4219       299.4686            329.1325      -195.4233    607070.6198        -2.4818        -2.5080
+
+ENERGY:  260000      1694.5984      4578.1439      2130.0158       284.7756        -212904.3793     15696.1249         0.0000         0.0000     37927.3460        -150593.3748       297.8822   -188520.7208   -150462.0857       299.0771            409.9634      -118.3108    605251.9598         0.7523         0.7614
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  262500      1641.9027      4647.9569      2126.0311       301.2877        -212890.1496     15772.5299         0.0000         0.0000     37915.1998        -150485.2416       297.7868   -188400.4414   -150351.1418       298.3314            504.5501       -21.8696    606241.8623        -1.4616        -1.4819
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  265000      1690.1319      4680.5391      2108.7655       293.3108        -212805.2914     15409.4622         0.0000         0.0000     38136.7478        -150486.3343       299.5269   -188623.0821   -150343.2745       299.2301            462.3866       -70.5067    602981.3864         2.8086         2.8575
+
+ENERGY:  267500      1657.1373      4620.5174      2108.8410       307.9536        -212567.5410     15575.4355         0.0000         0.0000     37890.5535        -150407.1028       297.5932   -188297.6563   -150268.4331       298.9126            446.0459       -85.4354    605951.5938        -1.1318        -1.1217
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  270000      1706.3593      4695.4936      2074.0345       295.8061        -213147.7821     15736.8138         0.0000         0.0000     37898.1081        -150741.1667       297.6526   -188639.2748   -150608.6784       298.5316            585.0986        49.6060    601904.1119        -1.9446        -2.0058
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  272500      1637.9087      4604.0977      2131.3763       294.7285        -212338.4569     15259.3433         0.0000         0.0000     38062.1206        -150348.8817       298.9407   -188411.0024   -150201.6941       298.9422            384.0722      -140.1962    604301.9630         2.6903         2.6786
+
+TIMING: 275000  CPU: 7361.04, 0.0261057/step  Wall: 7361.04, 0.0261057/step, 1.63175 hours remaining, 244.125000 MB of memory in use.
+ETITLE:      TS           BOND          ANGLE          DIHED          IMPRP               ELECT            VDW       BOUNDARY           MISC        KINETIC               TOTAL           TEMP      POTENTIAL         TOTAL3        TEMPAVG            PRESSURE      GPRESSURE         VOLUME       PRESSAVG      GPRESSAVG
+
+ENERGY:  275000      1651.8566      4688.6837      2099.1123       305.3901        -213136.6574     16091.6200         0.0000         0.0000     38143.4754        -150156.5194       299.5797   -188299.9947   -150009.2818       298.9154            798.6230       264.1135    601678.3511        -0.6389        -0.5931
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  277500      1625.8155      4602.1426      2101.2460       294.0399        -213107.1369     15665.0277         0.0000         0.0000     38059.5075        -150759.3577       298.9202   -188818.8652   -150624.8173       299.1276            460.4320       -68.4034    603732.5391         3.1321         3.1660
+
+ENERGY:  280000      1628.7255      4731.4725      2112.8442       293.0959        -213056.2608     15715.5424         0.0000         0.0000     37923.3848        -150651.1956       297.8511   -188574.5803   -150524.8429       298.3041            539.9642        10.6639    604657.3857        -0.6268        -0.6112
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  282500      1706.8320      4709.8050      2112.4006       276.2887        -213296.5699     15942.2795         0.0000         0.0000     38240.8127        -150308.1514       300.3442   -188548.9641   -150170.7825       298.6728            633.8019        98.5933    603216.8101         1.7221         1.8036
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  285000      1694.6634      4653.5717      2120.6086       300.3333        -213550.8417     16199.0013         0.0000         0.0000     37968.0828        -150614.5806       298.2022   -188582.6634   -150474.1402       298.6514            747.1330       213.4983    603042.3210         1.4111         1.4024
+
+ENERGY:  287500      1693.3088      4755.1573      2031.9524       288.0205        -212497.9757     15470.7454         0.0000         0.0000     38032.0095        -150226.7818       298.7042   -188258.7913   -150090.8004       298.7270            501.1147       -30.0931    603629.2349        -0.8727        -0.8832
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  290000      1678.6378      4728.8834      2073.1819       295.0551        -212273.2784     15293.5576         0.0000         0.0000     38228.8373        -149975.1253       300.2501   -188203.9626   -149839.0075       299.2547            415.7062      -114.5298    603304.2160         4.0901         4.1178
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  292500      1677.2030      4776.2953      2073.9000       297.8030        -213163.8339     15691.6713         0.0000         0.0000     38106.3410        -150540.6204       299.2880   -188646.9614   -150407.5347       299.3623            614.7604        81.1862    603228.5998         1.6138         1.6075
+
+ENERGY:  295000      1617.5335      4617.2900      2104.3623       276.0926        -212385.0848     15339.8933         0.0000         0.0000     38084.0966        -150345.8165       299.1133   -188429.9132   -150200.2018       299.2470            402.0637      -127.8786    605570.0705         2.0190         2.0362
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  297500      1616.4359      4569.9378      2120.5043       279.2001        -212329.2809     15415.6254         0.0000         0.0000     38052.1315        -150275.4458       298.8623   -188327.5773   -150129.9842       299.1644            443.9776       -81.7774    605028.1367         0.6261         0.6712
+
+TIMING: 300000  CPU: 8007.68, 0.0258656/step  Wall: 8007.68, 0.0258656/step, 1.43712 hours remaining, 244.171875 MB of memory in use.
+ETITLE:      TS           BOND          ANGLE          DIHED          IMPRP               ELECT            VDW       BOUNDARY           MISC        KINETIC               TOTAL           TEMP      POTENTIAL         TOTAL3        TEMPAVG            PRESSURE      GPRESSURE         VOLUME       PRESSAVG      GPRESSAVG
+
+ENERGY:  300000      1706.4778      4702.5154      2087.0094       269.6372        -212500.5688     15376.2010         0.0000         0.0000     38391.6748        -149967.0531       301.5291   -188358.7279   -149827.6312       299.3155            317.6944      -210.3777    604791.4723        -1.3839        -1.3918
+
+WRITING EXTENDED SYSTEM TO RESTART FILE AT STEP 300012
+FINISHED WRITING RESTART COORDINATES
+WRITING VELOCITIES TO RESTART FILE AT STEP 300012
+FINISHED WRITING RESTART VELOCITIES
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  302500      1659.0657      4647.9844      2113.8849       297.9778        -212705.8766     15875.8035         0.0000         0.0000     38092.9851        -150018.1753       299.1831   -188111.1604   -149881.1928       299.8186            565.0831        37.7450    605212.1817         1.3838         1.3499
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  305000      1671.9770      4650.1823      2170.0955       286.5527        -212423.8339     15285.7922         0.0000         0.0000     38122.9165        -150236.3176       299.4182   -188359.2341   -150097.7453       299.9405            307.3447      -222.1653    603517.3744        -1.4057        -1.4176
+
+ENERGY:  307500      1668.9146      4710.2620      2104.4804       281.7423        -212868.5677     15821.0776         0.0000         0.0000     37990.0111        -150292.0797       298.3744   -188282.0908   -150148.7095       299.5353            742.8786       209.5230    601834.0781        -0.9118        -0.8837
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  310000      1686.7354      4594.9488      2168.0577       302.6787        -213032.5329     15781.7675         0.0000         0.0000     38326.6002        -150171.7445       301.0180   -188498.3447   -150029.0911       299.0884            655.5691       122.1210    602144.7615         7.4277         7.4715
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  312500      1651.9958      4627.6386      2102.2002       280.2707        -212345.1661     15353.3576         0.0000         0.0000     37690.2791        -150639.4241       296.0203   -188329.7032   -150493.8817       299.0723            489.3457       -37.7940    604811.0870         4.0549         4.1107
+
+ENERGY:  315000      1624.2237      4716.5678      2116.8845       301.1541        -213111.1414     15939.4505         0.0000         0.0000     37915.4244        -150497.4364       297.7886   -188412.8608   -150360.5124       298.8928            651.5673       118.4866    604742.5472        -1.1170        -1.0545
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  317500      1594.3398      4647.9328      2114.6056       295.3393        -212816.9703     15727.4917         0.0000         0.0000     38222.7468        -150214.5145       300.2023   -188437.2613   -150079.5079       299.6741            654.9810       119.6257    605238.0375         1.6895         1.6894
+
+ENERGY:  320000      1684.8920      4601.0499      2092.6623       274.8378        -212475.6988     15404.6757         0.0000         0.0000     38115.5247        -150302.0564       299.3602   -188417.5811   -150159.7380       299.5653            512.1706       -22.5282    602052.9090        -0.3897        -0.3863
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  322500      1612.9716      4685.6513      2088.3246       269.9720        -212778.6248     15752.5945         0.0000         0.0000     38296.6941        -150072.4168       300.7831   -188369.1108   -149931.9665       299.4742            692.1509       164.4295    603387.8804        -0.2047        -0.2002
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+TIMING: 325000  CPU: 8653.78, 0.025844/step  Wall: 8653.78, 0.025844/step, 1.25645 hours remaining, 243.886719 MB of memory in use.
+ETITLE:      TS           BOND          ANGLE          DIHED          IMPRP               ELECT            VDW       BOUNDARY           MISC        KINETIC               TOTAL           TEMP      POTENTIAL         TOTAL3        TEMPAVG            PRESSURE      GPRESSURE         VOLUME       PRESSAVG      GPRESSAVG
+
+ENERGY:  325000      1633.6031      4646.2144      2148.0126       290.6824        -212409.3786     15775.1057         0.0000         0.0000     38388.2582        -149527.5022       301.5022   -187915.7604   -149386.5569       300.3934            609.4959        88.2607    605576.4361         1.8668         1.8848
+
+ENERGY:  327500      1640.8780      4741.5386      2079.3684       275.1621        -212809.7768     15804.0331         0.0000         0.0000     38176.8113        -150091.9852       299.8415   -188268.7966   -149951.7942       300.2443            593.6124        66.4171    606227.1160         1.3839         1.3769
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  330000      1676.5196      4641.7405      2121.8973       290.5419        -212477.4673     15578.2577         0.0000         0.0000     38335.7632        -149832.7471       301.0899   -188168.5103   -149691.5983       299.7162            505.4701       -18.9049    604717.5861        -2.3595        -2.3440
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  332500      1629.9778      4737.7271      2152.4758       280.5187        -212657.0866     15725.2885         0.0000         0.0000     38201.5712        -149929.5274       300.0360   -188131.0986   -149794.7482       299.9259            456.4923       -70.7963    605664.5366         0.6522         0.6226
+
+ENERGY:  335000      1691.2223      4775.7205      2138.1426       298.4654        -212915.5527     15501.7004         0.0000         0.0000     37916.2765        -150594.0250       297.7953   -188510.3015   -150459.6139       298.8640            313.3012      -214.5525    604368.1073         0.3047         0.2901
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  337500      1596.1971      4701.3002      2125.9418       305.4355        -212963.2577     15646.0557         0.0000         0.0000     38298.5646        -150289.7630       300.7978   -188588.3275   -150149.0874       298.6871            682.7481       152.7279    602215.3240         4.4619         4.4817
+
+ENERGY:  340000      1675.3243      4737.1791      2071.6742       293.3406        -213104.2595     15826.2447         0.0000         0.0000     38066.0139        -150434.4826       298.9713   -188500.4966   -150293.3696       298.9840            773.6483       242.4530    603741.0575        -3.9893        -3.9983
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  342500      1655.6360      4730.6493      2079.0831       251.2776        -213009.4351     15827.3843         0.0000         0.0000     38139.7976        -150325.6072       299.5508   -188465.4048   -150192.6242       298.8201            777.8984       248.7245    604505.4028         3.4091         3.4286
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  345000      1637.2342      4667.0277      2099.6754       283.4781        -212692.8575     15608.8915         0.0000         0.0000     38050.2242        -150346.3265       298.8473   -188396.5507   -150206.1943       298.9850            497.6983       -30.6180    604118.7517        -1.3956        -1.3914
+
+ENERGY:  347500      1654.5787      4666.5317      2057.1368       303.5114        -212816.0586     15675.9789         0.0000         0.0000     37986.0630        -150472.2581       298.3434   -188458.3212   -150333.3691       298.9318            570.1618        43.7077    604633.8699         0.7906         0.7667
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+TIMING: 350000  CPU: 9303.29, 0.0259804/step  Wall: 9303.29, 0.0259804/step, 1.08266 hours remaining, 243.980469 MB of memory in use.
+ETITLE:      TS           BOND          ANGLE          DIHED          IMPRP               ELECT            VDW       BOUNDARY           MISC        KINETIC               TOTAL           TEMP      POTENTIAL         TOTAL3        TEMPAVG            PRESSURE      GPRESSURE         VOLUME       PRESSAVG      GPRESSAVG
+
+ENERGY:  350000      1698.5740      4636.9835      2127.7407       283.6908        -212293.0518     15432.9237         0.0000         0.0000     38397.0674        -149716.0717       301.5714   -188113.1391   -149571.8864       299.9793            412.6646      -117.5671    604219.5252         1.5597         1.5306
+
+WRITING EXTENDED SYSTEM TO RESTART FILE AT STEP 350014
+FINISHED WRITING RESTART COORDINATES
+WRITING VELOCITIES TO RESTART FILE AT STEP 350014
+FINISHED WRITING RESTART VELOCITIES
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  352500      1693.3832      4738.6494      2126.3788       276.6644        -213020.9007     15603.4888         0.0000         0.0000     38039.8824        -150542.4536       298.7661   -188582.3361   -150409.4262       299.0104            514.0897       -20.0006    602414.5179        -0.9975        -0.9561
+
+ENERGY:  355000      1735.7425      4636.6815      2099.3898       290.1271        -213023.2489     15752.1233         0.0000         0.0000     38125.8369        -150383.3478       299.4412   -188509.1847   -150243.7607       298.8597            535.9354         2.2758    603142.4055         4.0221         4.0301
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  357500      1718.6866      4699.0057      2110.6676       284.9532        -213552.0414     16117.5894         0.0000         0.0000     37979.1009        -150642.0380       298.2887   -188621.1389   -150501.1241       298.7039            648.7661       116.5467    602345.5755         1.3442         1.3356
+
+ENERGY:  360000      1643.1732      4671.0359      2136.8103       291.9709        -212565.5562     15270.7935         0.0000         0.0000     38164.1205        -150387.6520       299.7418   -188551.7725   -150252.9155       298.8623            373.7916      -156.5816    603414.3045         2.6498         2.6420
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  362500      1671.6134      4744.7385      2109.1450       302.3258        -212851.3773     15579.8663         0.0000         0.0000     38072.1932        -150371.4952       299.0198   -188443.6884   -150235.5776       298.3051            433.4154       -99.9079    604794.7762         5.8861         5.8647
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  365000      1629.9009      4644.9508      2113.2596       292.5030        -212471.2001     15443.8369         0.0000         0.0000     38197.1028        -150149.6461       300.0009   -188346.7489   -150012.1162       298.9136            482.3511       -47.5923    603216.1154         0.0860         0.0200
+
+ENERGY:  367500      1631.8352      4613.6701      2093.0605       270.6043        -212720.9497     15578.5926         0.0000         0.0000     38278.9041        -150254.2829       300.6434   -188533.1871   -150116.0238       299.1139            520.4836       -16.1561    604408.7994        -0.3371        -0.3028
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  370000      1643.1774      4647.3767      2112.1127       307.5639        -212192.0287     15303.4720         0.0000         0.0000     38037.9318        -150140.3941       298.7507   -188178.3259   -149999.6659       299.2512            436.3773       -94.0322    604125.9494         1.9801         1.9369
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  372500      1657.8368      4672.9192      2134.1053       267.4364        -212799.9772     15700.6151         0.0000         0.0000     37953.3032        -150413.7613       298.0861   -188367.0645   -150281.5976       299.3428            655.6869       120.2536    603153.4710        -2.4882        -2.4630
+
+TIMING: 375000  CPU: 9956.54, 0.0261301/step  Wall: 9956.54, 0.0261301/step, 0.907441 hours remaining, 245.050781 MB of memory in use.
+ETITLE:      TS           BOND          ANGLE          DIHED          IMPRP               ELECT            VDW       BOUNDARY           MISC        KINETIC               TOTAL           TEMP      POTENTIAL         TOTAL3        TEMPAVG            PRESSURE      GPRESSURE         VOLUME       PRESSAVG      GPRESSAVG
+
+ENERGY:  375000      1661.7447      4626.5899      2092.3402       303.5879        -212526.6202     15525.1299         0.0000         0.0000     37806.1706        -150511.0570       296.9305   -188317.2276   -150362.6495       298.6389            569.3951        34.8786    603492.3589        -0.8276        -0.8054
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  377500      1629.2511      4709.3868      2115.2307       286.2602        -212456.0887     15623.0693         0.0000         0.0000     38072.8136        -150020.0771       299.0247   -188092.8907   -149883.8088       298.6507            600.4118        70.5493    604197.7951        -0.0272        -0.0518
+
+ENERGY:  380000      1663.7301      4649.2548      2131.1741       295.2670        -212644.8437     15658.9411         0.0000         0.0000     37931.7386        -150314.7381       297.9167   -188246.4767   -150177.0931       299.0237            474.5553       -49.9881    608126.9952         0.3365         0.3652
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  382500      1655.5103      4760.0475      2141.6338       302.0784        -212864.8075     15643.9250         0.0000         0.0000     37924.6493        -150436.9632       297.8610   -188361.6125   -150301.6846       298.7190            570.2858        44.0721    603299.4983        -0.3508        -0.3794
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  385000      1625.2267      4718.5040      2093.2992       294.0441        -213487.3916     15878.4253         0.0000         0.0000     38055.9320        -150821.9601       298.8921   -188877.8921   -150674.7453       298.3091            582.4092        53.5541    604014.0976         4.3118         4.2875
+
+ENERGY:  387500      1654.5439      4689.3901      2139.0094       290.4979        -213207.8679     15845.2457         0.0000         0.0000     37821.6528        -150767.5282       297.0521   -188589.1810   -150632.9003       297.8265            663.7569       132.4385    603670.6703         1.6903         1.6246
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  390000      1581.1240      4656.4518      2127.8664       314.2217        -212495.8504     15448.4491         0.0000         0.0000     38236.9082        -150130.8293       300.3135   -188367.7375   -149986.3442       298.3073            511.9008       -14.5619    605207.8652         1.4908         1.4683
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  392500      1636.3848      4729.5728      2135.8199       305.7640        -212505.1902     15493.4258         0.0000         0.0000     38212.6712        -149991.5518       300.1232   -188204.2230   -149844.9695       299.6920            626.6374        96.9655    604585.2509         2.8573         2.8192
+
+ENERGY:  395000      1701.4589      4630.6426      2092.9931       287.2038        -212682.6133     15609.6803         0.0000         0.0000     38368.7603        -149991.8744       301.3491   -188360.6347   -149853.8304       299.9950            403.6108      -126.8292    604440.6682         1.9220         1.9063
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  397500      1657.3999      4714.6929      2165.6849       311.6954        -213174.8334     15818.0038         0.0000         0.0000     38120.6273        -150386.7293       299.4002   -188507.3566   -150247.0560       299.2110            588.5348        56.9234    602521.0657         0.3187         0.3109
+
+TIMING: 400000  CPU: 10612.9, 0.0262538/step  Wall: 10612.9, 0.0262538/step, 0.729419 hours remaining, 244.789063 MB of memory in use.
+ETITLE:      TS           BOND          ANGLE          DIHED          IMPRP               ELECT            VDW       BOUNDARY           MISC        KINETIC               TOTAL           TEMP      POTENTIAL         TOTAL3        TEMPAVG            PRESSURE      GPRESSURE         VOLUME       PRESSAVG      GPRESSAVG
+
+ENERGY:  400000      1746.8730      4745.2398      2134.8449       303.6887        -212756.7951     15469.0224         0.0000         0.0000     38058.2123        -150298.9140       298.9100   -188357.1264   -150161.3563       298.6033            398.8734      -130.4375    603338.7061        -1.1117        -1.1116
+
+WRITING EXTENDED SYSTEM TO RESTART FILE AT STEP 400016
+FINISHED WRITING RESTART COORDINATES
+WRITING VELOCITIES TO RESTART FILE AT STEP 400016
+FINISHED WRITING RESTART VELOCITIES
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  402500      1678.2181      4720.3087      2112.7089       298.8401        -212348.9233     15169.0010         0.0000         0.0000     38009.0281        -150360.8183       298.5237   -188369.8464   -150230.4519       299.3988            375.0951      -160.0404    602672.7437         1.2853         1.3113
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  405000      1670.5911      4655.0699      2107.6354       299.3897        -213039.1316     15704.2171         0.0000         0.0000     38264.1443        -150338.0841       300.5274   -188602.2285   -150204.9475       298.8950            532.5011        -0.7506    603625.9669         5.7467         5.7473
+
+ENERGY:  407500      1694.2182      4721.5098      2127.5090       291.0914        -213427.4704     15924.8534         0.0000         0.0000     37996.5237        -150671.7650       298.4255   -188668.2887   -150535.9969       298.5664            572.1878        41.6060    603056.9483        -1.9253        -1.8695
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  410000      1705.0500      4761.9099      2105.2562       283.8318        -213116.0079     15673.9952         0.0000         0.0000     38162.2171        -150423.7476       299.7269   -188585.9647   -150284.5109       298.3352            459.9762       -71.4627    604857.9116         6.5581         6.5504
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  412500      1659.8401      4700.0696      2108.8182       278.5650        -212689.8881     15740.0977         0.0000         0.0000     37896.3278        -150306.1698       297.6386   -188202.4975   -150173.4426       298.1314            697.0069       159.8719    603202.3691        -1.1993        -1.1888
+
+ENERGY:  415000      1630.1106      4663.4804      2109.4533       300.5062        -212441.3536     15481.2675         0.0000         0.0000     37916.7057        -150339.8298       297.7986   -188256.5356   -150199.4915       299.2220            350.0220      -178.4417    604741.0428         0.9982         0.9705
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  417500      1635.0499      4645.0811      2092.3121       288.8965        -213106.3053     15864.2903         0.0000         0.0000     38179.6978        -150400.9776       299.8642   -188580.6754   -150255.7773       298.7960            550.1628        24.7560    605366.3887         0.4766         0.4246
+
+ENERGY:  420000      1682.5869      4675.6879      2151.9560       289.6288        -212567.0752     15501.0431         0.0000         0.0000     38007.9706        -150258.2019       298.5154   -188266.1724   -150128.4975       299.0682            471.9613       -63.0767    602751.2277        -2.9287        -2.8698
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  422500      1666.8419      4644.7626      2128.4725       288.9823        -212363.1931     15233.8530         0.0000         0.0000     37924.5988        -150475.6820       297.8606   -188400.2808   -150330.9344       298.4366            315.3722      -216.2981    603517.0919        -0.3971        -0.3838
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+TIMING: 425000  CPU: 11271.4, 0.0263414/step  Wall: 11271.4, 0.0263414/step, 0.548926 hours remaining, 244.488281 MB of memory in use.
+ETITLE:      TS           BOND          ANGLE          DIHED          IMPRP               ELECT            VDW       BOUNDARY           MISC        KINETIC               TOTAL           TEMP      POTENTIAL         TOTAL3        TEMPAVG            PRESSURE      GPRESSURE         VOLUME       PRESSAVG      GPRESSAVG
+
+ENERGY:  425000      1667.1602      4672.3548      2089.0665       290.7404        -212407.4636     15184.9335         0.0000         0.0000     37756.1067        -150747.1016       296.5373   -188503.2083   -150605.1186       298.5667             75.6092      -450.3541    607959.6961         5.5124         5.5000
+
+ENERGY:  427500      1725.9577      4637.0685      2205.3764       286.2331        -213113.6683     15678.1451         0.0000         0.0000     38196.6656        -150384.2219       299.9974   -188580.8875   -150247.1251       298.3201            469.0662       -61.1528    603331.4530        -0.3223        -0.3245
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  430000      1685.6013      4742.9251      2137.2543       284.2109        -212367.9548     15274.4535         0.0000         0.0000     38132.5950        -150110.9148       299.4942   -188243.5098   -149966.7897       299.1123            334.7304      -196.9072    604834.4108        -2.4970        -2.4332
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  432500      1687.2142      4739.9973      2121.2794       279.0065        -212674.4569     15592.4456         0.0000         0.0000     38116.1329        -150138.3811       299.3649   -188254.5140   -150001.5799       299.8397            415.0698      -123.0649    604201.2474         4.7020         4.7369
+
+ENERGY:  435000      1673.2320      4596.2114      2101.1150       268.9662        -212236.3258     15600.7297         0.0000         0.0000     38083.1929        -149912.8786       299.1062   -187996.0715   -149775.1861       299.5696            588.8477        61.0313    606012.4922         1.8898         1.9843
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  437500      1586.5647      4676.5360      2164.0043       274.8471        -212780.0482     15715.5388         0.0000         0.0000     38092.7653        -150269.7920       299.1814   -188362.5574   -150136.1462       299.7659            750.8200       222.5663    602968.9314        -2.3869        -2.3784
+
+ENERGY:  440000      1584.5230      4798.4901      2097.4950       306.8029        -212799.5205     15397.4541         0.0000         0.0000     38104.1390        -150510.6164       299.2707   -188614.7554   -150374.4327       298.5485            464.6458       -69.1671    604618.3199         2.1680         2.1330
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  442500      1666.2877      4728.0827      2114.2284       299.2501        -213165.5809     15836.4297         0.0000         0.0000     38039.4644        -150481.8379       298.7628   -188521.3023   -150341.1571       298.2062            530.8759        -1.2597    604586.9281        -4.7726        -4.7124
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  445000      1678.0638      4661.2410      2141.8518       306.0571        -212959.1895     15881.3290         0.0000         0.0000     38108.9306        -150181.7162       299.3084   -188290.6468   -150045.2066       298.4701            661.6407       130.9524    605146.1454         1.0262         1.0087
+
+ENERGY:  447500      1702.5925      4700.2393      2109.5357       283.0034        -212648.3913     15324.4172         0.0000         0.0000     37912.3379        -150616.2654       297.7643   -188528.6032   -150481.0518       298.5532            298.4132      -231.0071    603515.3247         4.9058         4.9546
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+TIMING: 450000  CPU: 11932.2, 0.0264327/step  Wall: 11932.2, 0.0264327/step, 0.367268 hours remaining, 243.750000 MB of memory in use.
+ETITLE:      TS           BOND          ANGLE          DIHED          IMPRP               ELECT            VDW       BOUNDARY           MISC        KINETIC               TOTAL           TEMP      POTENTIAL         TOTAL3        TEMPAVG            PRESSURE      GPRESSURE         VOLUME       PRESSAVG      GPRESSAVG
+
+ENERGY:  450000      1608.3774      4652.5572      2093.9636       295.3605        -212722.1987     15432.7879         0.0000         0.0000     38033.1909        -150605.9612       298.7135   -188639.1521   -150477.6889       298.2337            615.0955        88.5513    602580.2491        -2.8774        -2.8778
+
+WRITING EXTENDED SYSTEM TO RESTART FILE AT STEP 450018
+FINISHED WRITING RESTART COORDINATES
+WRITING VELOCITIES TO RESTART FILE AT STEP 450018
+FINISHED WRITING RESTART VELOCITIES
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  452500      1696.2350      4650.7988      2162.5724       279.9830        -212478.5619     15357.4296         0.0000         0.0000     38034.3241        -150297.2190       298.7224   -188331.5431   -150162.0742       299.1994            493.4515       -30.9406    603742.2609         0.1051         0.1096
+
+ENERGY:  455000      1718.4959      4613.0658      2105.3283       275.4770        -212470.4044     15520.7867         0.0000         0.0000     38049.3560        -150187.8947       298.8405   -188237.2507   -150053.4477       299.2020            440.7323       -86.8459    604470.8062         2.7958         2.7386
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  457500      1642.4669      4660.7510      2128.3689       300.6544        -212755.5917     15655.3755         0.0000         0.0000     37814.8639        -150553.1110       296.9988   -188367.9749   -150402.9773       299.4752            524.3421       -10.0744    606020.6604         0.1876         0.1263
+
+ENERGY:  460000      1684.4965      4689.1224      2066.9590       291.4823        -212783.2422     15687.4300         0.0000         0.0000     38228.6965        -150135.0554       300.2490   -188363.7519   -149989.9966       299.1988            594.0123        62.3404    604516.7116         3.0405         3.0305
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  462500      1575.5077      4665.5715      2136.4527       291.6623        -212870.6766     15572.1369         0.0000         0.0000     37901.7813        -150727.5641       297.6814   -188629.3455   -150584.5169       298.4603            568.2340        29.4208    604217.0314         0.4856         0.5097
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  465000      1695.2368      4694.9873      2154.0342       290.2035        -213024.6926     15789.9076         0.0000         0.0000     38134.0598        -150266.2634       299.5057   -188400.3232   -150133.9480       298.6738            568.7439        40.1129    604494.8654         0.9091         0.8637
+
+ENERGY:  467500      1677.4392      4704.0967      2148.1043       309.3143        -212663.7551     15597.4007         0.0000         0.0000     38030.5157        -150196.8844       298.6925   -188227.4000   -150056.3174       298.5316            511.3605       -15.9743    604190.4261         3.4979         3.4962
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  470000      1683.3290      4643.2718      2120.1508       274.4885        -212434.9978     15683.4025         0.0000         0.0000     38081.8059        -149948.5494       299.0953   -188030.3552   -149807.4855       299.3887            583.7897        58.0680    604267.2352         1.2312         1.2151
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  472500      1612.2661      4676.9789      2163.0504       282.4310        -212669.6774     15644.2309         0.0000         0.0000     38105.7346        -150184.9856       299.2833   -188290.7202   -150048.3916       299.2966            698.4905       164.8467    602910.8552         2.5044         2.5295
+
+TIMING: 475000  CPU: 12592.7, 0.0264201/step  Wall: 12592.7, 0.0264201/step, 0.18362 hours remaining, 245.707031 MB of memory in use.
+ETITLE:      TS           BOND          ANGLE          DIHED          IMPRP               ELECT            VDW       BOUNDARY           MISC        KINETIC               TOTAL           TEMP      POTENTIAL         TOTAL3        TEMPAVG            PRESSURE      GPRESSURE         VOLUME       PRESSAVG      GPRESSAVG
+
+ENERGY:  475000      1610.5841      4666.9459      2132.1224       302.4598        -212698.9973     15574.0461         0.0000         0.0000     38322.3096        -150090.5294       300.9843   -188412.8390   -149947.2509       298.7640            564.2073        33.4342    604482.3189        -4.1735        -4.1776
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  477500      1653.1804      4742.1560      2123.1961       282.5430        -212724.7573     15676.4603         0.0000         0.0000     38166.9322        -150080.2893       299.7639   -188247.2215   -149949.2943       299.4401            537.1615         8.5421    603945.7744         4.7035         4.7192
+
+ENERGY:  480000      1646.2380      4739.6699      2141.6427       298.7691        -212866.7707     15786.3941         0.0000         0.0000     37999.6576        -150254.3993       298.4501   -188254.0569   -150118.4332       299.3059            573.3953        43.3015    603386.1100         0.5599         0.6445
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  482500      1655.6152      4683.6954      2080.7247       264.8565        -213173.5906     15662.1975         0.0000         0.0000     37965.1426        -150861.3587       298.1791   -188826.5013   -150727.1604       298.4571            504.5733       -26.7425    603538.1113         0.5813         0.6330
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  485000      1639.7954      4653.6162      2131.1886       283.3999        -212911.0917     15743.8578         0.0000         0.0000     37860.4603        -150598.7735       297.3569   -188459.2339   -150461.2563       298.1226            636.4292       109.4429    604282.7860         0.8740         0.8538
+
+ENERGY:  487500      1647.2984      4695.4984      2120.4008       291.4269        -212755.5219     15682.1108         0.0000         0.0000     38323.6727        -149995.1139       300.9950   -188318.7866   -149863.1102       299.0597            524.0671       -12.0262    603315.9420         2.7690         2.7778
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  490000      1617.3661      4676.6385      2126.8767       289.5007        -212141.1811     15362.6225         0.0000         0.0000     38134.8768        -149933.2998       299.5122   -188068.1766   -149791.6916       299.1459            547.7180        16.7663    604718.5968         5.6794         5.6676
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  492500      1661.9286      4648.0509      2111.5847       275.4415        -212270.0697     15493.0473         0.0000         0.0000     37958.7575        -150121.2592       298.1289   -188080.0166   -149973.3666       299.6527            420.9783      -105.8456    606089.1994        -0.4470        -0.4655
+
+ENERGY:  495000      1697.2909      4687.0658      2130.7912       298.1219        -212553.0388     15580.1201         0.0000         0.0000     38038.0834        -150121.5655       298.7519   -188159.6488   -149978.4908       299.8420            505.0680       -24.2365    604506.9939         2.0118         2.0081
+
+Info: useSync: 1 useProxySync: 0
+Info: useSync: 1 useProxySync: 0
+ENERGY:  497500      1616.6143      4648.6308      2069.2179       304.8841        -212799.9533     15860.1523         0.0000         0.0000     38118.8018        -150181.6522       299.3859   -188300.4540   -150043.1419       299.8588            644.7765       114.0770    603493.5956         2.5393         2.5777
+
+TIMING: 500000  CPU: 13253.1, 0.0264146/step  Wall: 13253.1, 0.0264146/step, 0.000146748 hours remaining, 243.917969 MB of memory in use.
+ETITLE:      TS           BOND          ANGLE          DIHED          IMPRP               ELECT            VDW       BOUNDARY           MISC        KINETIC               TOTAL           TEMP      POTENTIAL         TOTAL3        TEMPAVG            PRESSURE      GPRESSURE         VOLUME       PRESSAVG      GPRESSAVG
+
+ENERGY:  500000      1647.4029      4663.5220      2123.9729       313.7214        -212798.8858     15835.2214         0.0000         0.0000     38121.7955        -150093.2496       299.4094   -188215.0451   -149963.3955       299.5027            667.4380       136.5621    603673.0820         4.5582         4.5180
+
+WRITING EXTENDED SYSTEM TO RESTART FILE AT STEP 500020
+FINISHED WRITING RESTART COORDINATES
+WRITING VELOCITIES TO RESTART FILE AT STEP 500020
+FINISHED WRITING RESTART VELOCITIES
+WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 500020
+CLOSING EXTENDED SYSTEM TRAJECTORY FILE
+CLOSING COORDINATE DCD FILE out/11-run-wat/00001.dcd
+WRITING VELOCITIES TO OUTPUT FILE AT STEP 500020
+====================================================
+
+WallClock: 13254.525391  CPUTime: 13254.525391  Memory: 243.441406 MB
+Program finished after 13254.526000 seconds.
+TRANSFERING COMPLETED DCDs:

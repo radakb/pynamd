@@ -25,7 +25,23 @@ If you are using the Python distribution that comes with your operating system, 
 Examples
 ========
 
-Check back soon.
+```python
+import pynamd
+
+log = pynamd.NamdLog("00001.log", "00002.log")
+
+#info contains information about time-steps, temperatures etc...
+log.info
+
+#energy contains the time-series data in a dictionary
+log.energy
+
+#log.energy can easily be converted into a pandas dataframe
+import pandas as pd 
+df =  pd.DataFrame(log.energy)
+```
+
+Further examples are in the [examples](examples/) subfolder. 
 
 
 Tests
