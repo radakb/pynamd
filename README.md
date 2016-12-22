@@ -27,6 +27,15 @@ Examples
 
 Check back soon.
 
+
+Tests
+=====
+
+Tests can be run using the [pytest](http://doc.pytest.org/en/latest/) framework. Install pytest using conda `conda install pytest` or pip `pip install pytest`.
+
+Run with `pytest` in the root of the repository.  
+
+
 Authors and Contributors
 ========================
 
