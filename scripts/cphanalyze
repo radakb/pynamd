@@ -64,8 +64,8 @@ if len(sys.argv) < 2:
     parser.print_help()
     sys.exit()
 args = parser.parse_args()
-if len(args.config) == 0:
-    print('Must specify at least one cph config file.')
+if len(args.json) == 0:
+    print('Must specify at least one cph JSON config file.')
     sys.exit()
 if args.stop < 0 or args.stop < args.start:
     args.stop = None
@@ -82,7 +82,7 @@ if args.noequiv:
     args.micro = True
 
 # Read in, subsample, and sort all of the data.
-tset = TitratableSystemSet.from_cphlogs(args.cphlog, args.config,
+tset = TitratableSystemSet.from_cphlogs(args.cphlog, args.json,
                                         args.start, args.stop, args.step)
 pHs, npHs, nsamples = tset.pHs, tset.numpHs, tset.nsamples
 # Print a quick report regarding what was read.
