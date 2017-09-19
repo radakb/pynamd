@@ -25,7 +25,32 @@ If you are using the Python distribution that comes with your operating system, 
 Examples
 ========
 
-Check back soon.
+```python
+import pynamd
+
+log = pynamd.NamdLog("00001.log", "00002.log")
+
+#info contains information about time-steps, temperatures etc...
+log.info
+
+#energy contains the time-series data in a dictionary
+log.energy
+
+#log.energy can easily be converted into a pandas dataframe
+import pandas as pd 
+df =  pd.DataFrame(log.energy)
+```
+
+Further examples are in the [examples](examples/) subfolder. 
+
+
+Tests
+=====
+
+Tests can be run using the [pytest](http://doc.pytest.org/en/latest/) framework. Install pytest using conda `conda install pytest` or pip `pip install pytest`.
+
+Run with `pytest` in the root of the repository.  
+
 
 Authors and Contributors
 ========================
