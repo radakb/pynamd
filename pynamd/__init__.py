@@ -7,4 +7,6 @@ __version__ = '1.0'
 __author__ = 'Brian K. Radak'
 
 from pynamd.log import NamdLog
+# from pynamd.xgs import NamdXGSLog
 from pynamd.config import NamdConfig
+from pynamd.cphlog import TitratableSystemSet
