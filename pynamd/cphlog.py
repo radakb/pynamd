@@ -57,8 +57,6 @@ class TitratableSystemSet(collections.Mapping):
     # These should always be compared with str(method).lower()
     _MULTISTATE_METHODS = ('uwham')
 
-
-    _dict = {}
     def __init__(self, *args, **kwargs):
         self._od = collections.OrderedDict(*args, **kwargs)
 
@@ -96,30 +94,15 @@ class TitratableSystemSet(collections.Mapping):
         return self.pHs.size
 
     @property
-    def nresidues(self):
-        """The number of residues (same at all pH values)."""
-        return self.values()[0].nresidues
-
-    @property
-    def residues(self):
-        """A list of the residue objects (same at all pH values)."""
-        return self.values()[0]
+    def nsamples(self):
+        """The number of samples at each pH as an ndarray."""
+        return np.asarray([s.nsamples for s in self.itervalues()], np.int32)
 
     @property
     def nsites(self):
         """The number of (possibly non-unique) sites (same at all pH values).
         """
         return self.values()[0].nsites
-
-    @property
-    def nsamples(self):
-        """The number of samples at each pH as an ndarray."""
-        return np.asarray([s.nsamples for s in self.itervalues()], np.int32)
-
-    @property
-    def total_samples(self):
-        """Alias for nsamples.sum()"""
-        return self.nsamples.sum()
 
     @property
     def nstates_micro_noequiv(self):
@@ -136,49 +119,155 @@ class TitratableSystemSet(collections.Mapping):
         """The number of macrostates per residue (same at all pH values)"""
         return self.values()[0].nstates_macro
 
-    @property
-    def micro_occupancies_noequiv(self):
-        """The microstate occupancies (with no adherence to equivalent states)
-        from each pH value stacked as a ndarray.
+    def nresidues(self, segresids=[], notsegresids=[], resnames=[],
+            notresnames=[]):
+        """Return the number of residues in the given selection. This is the
+        same at all pH values.
 
-        The shape is (total_samples, nstates) - this is the minimum memory
-        shape that can be used for multi-state reweighting methods.
+        (Optional) selection keywords
+        -----------------------------
+        segresids : list
+            explicit residue selections of the form <segid:resid>
+        notsegresids : list
+            explicit residue exclusions of the form <segid:resid>
+        resnames : list
+            explict selection by residue name
+        notresnames : list
+            explicit exclusion by residue name
         """
-        nstates = self.nstates_micro_noequiv 
-        occ = np.zeros((self.total_samples, nstates.sum()), np.int32)
+        args = (segresids, notsegresids, resnames, notresnames)
+        return self.values()[0].nresidues(*args)
+
+    def segresids(self, segresids=[], notsegresids=[], resnames=[],
+            notresnames=[]):
+        """Return, as a list, the segresids in the given selection. This is the
+        same at all pH values.
+
+        (Optional) selection keywords
+        -----------------------------
+        segresids : list
+            explicit residue selections of the form <segid:resid>
+        notsegresids : list
+            explicit residue exclusions of the form <segid:resid>
+        resnames : list
+            explict selection by residue name
+        notresnames : list
+            explicit exclusion by residue name
+        """
+        args = (segresids, notsegresids, resnames, notresnames)
+        return self.values()[0].segresids(*args)
+
+    def resnames(self, segresids=[], notsegresids=[], resnames=[], 
+            notresnames=[]):
+        """Return, as a list, the resnames in the given selection. This is the
+        same at all pH values.
+
+        (Optional) selection keywords
+        -----------------------------
+        segresids : list
+            explicit residue selections of the form <segid:resid>
+        notsegresids : list
+            explicit residue exclusions of the form <segid:resid>
+        resnames : list
+            explict selection by residue name
+        notresnames : list
+            explicit exclusion by residue name
+        """
+        args = (segresids, notsegresids, resnames, notresnames)
+        return self.values()[0].resnames(*args)
+
+    def _combine_occupancies(self, nstates, occupancy_type, segresids,
+            notsegresids, resnames, notresnames):
+        # Allocate an array large enough for all residues at all pH values.
+        # This may also include masking for residue selections. Stack all of
+        # the data in this array.
+        #
+        args = (segresids, notsegresids, resnames, notresnames)
+        mask = self.values()[0]._selection_mask(*args)
+        _nstates = nstates*mask
+        occ = np.zeros((self.nsamples.sum(), _nstates.sum()), np.int32)
         indices = np.hstack((np.zeros(1, np.int32), self.nsamples.cumsum()))
         for i, j, tsys in zip(indices[:-1], indices[1:], self.itervalues()):
-            occ[i:j] += tsys.micro_occupancies_noequiv
+            occ[i:j] += tsys.__getattribute__(occupancy_type)(*args)
         return occ
 
-    @property
-    def micro_occupancies_equiv(self):
-        """The microstate occupancies (combining equivalent states) from each
-        pH value stacked as a ndarray.
+    def micro_occupancies_noequiv(self, segresids=[], notsegresids=[],
+            resnames=[], notresnames=[]):
+        """Return the microstate occupancies (with no adherence to equivalent
+        states) from each pH value stacked as a ndarray.
 
-        The shape is (total_samples, nstates) - this is the minimum memory
-        shape that can be used for multi-state reweighting methods.
+        (Optional) selection keywords
+        -----------------------------
+        segresids : list
+            explicit residue selections of the form <segid:resid>
+        notsegresids : list
+            explicit residue exclusions of the form <segid:resid>
+        resnames : list
+            explict selection by residue name
+        notresnames : list
+            explicit exclusion by residue name
+
+        Returns
+        -------
+        occupancy : ndarray
+            the occupancies of the selected residues
         """
+        args = (segresids, notsegresids, resnames, notresnames)
+        nstates = self.nstates_micro_noequiv
+        otype = 'micro_occupancies_noequiv'
+        return self._combine_occupancies(nstates, otype, *args)
+
+    def micro_occupancies_equiv(self, segresids=[], notsegresids=[],
+            resnames=[], notresnames=[]):
+        """Return the microstate occupancies (combining equivalent states) from
+        each pH value stacked as a ndarray.
+
+        (Optional) selection keywords
+        -----------------------------
+        segresids : list
+            explicit residue selections of the form <segid:resid>
+        notsegresids : list
+            explicit residue exclusions of the form <segid:resid>
+        resnames : list
+            explict selection by residue name
+        notresnames : list
+            explicit exclusion by residue name
+
+        Returns
+        -------
+        occupancy : ndarray
+            the occupancies of the selected residues
+        """
+        args = (segresids, notsegresids, resnames, notresnames)
         nstates = self.nstates_micro_equiv
-        occ = np.zeros((self.total_samples, nstates.sum()), np.int32)
-        indices = np.hstack((np.zeros(1, np.int32), self.nsamples.cumsum()))
-        for i, j, tsys in zip(indices[:-1], indices[1:], self.itervalues()):
-            occ[i:j] += tsys.micro_occupancies_equiv
-        return occ
+        otype = 'micro_occupancies_equiv'
+        return self._combine_occupancies(nstates, otype, *args)
 
-    @property
-    def macro_occupancies(self):
-        """The macrostate occupancies from each pH value stacked as a ndarray.
+    def macro_occupancies(self, segresids=[], notsegresids=[], resnames=[],
+            notresnames=[]):
+        """Return the macrostate occupancies from each pH value stacked as a
+        ndarray.
 
-        The shape is (total_samples, nstates) - this is the minimum memory
-        shape that can be used for multi-state reweighting methods.
+        (Optional) selection keywords
+        -----------------------------
+        segresids : list
+            explicit residue selections of the form <segid:resid>
+        notsegresids : list
+            explicit residue exclusions of the form <segid:resid>
+        resnames : list
+            explict selection by residue name
+        notresnames : list
+            explicit exclusion by residue name
+
+        Returns
+        -------
+        occupancy : nstates ndarray
+            the occupancies of the selected residues
         """
+        args = (segresids, notsegresids, resnames, notresnames)
         nstates = self.nstates_macro
-        occ = np.zeros((self.total_samples, nstates.sum()), np.int32)
-        indices = np.hstack((np.zeros(1, np.int32), self.nsamples.cumsum()))
-        for i, j, tsys in zip(indices[:-1], indices[1:], self.itervalues()):
-            occ[i:j] += tsys.macro_occupancies
-        return occ
+        otype = 'macro_occupancies'
+        return self._combine_occupancies(nstates, otype, *args)
 
     @classmethod
     def from_cphlogs(cls, cphlogs, configfiles, start=None, stop=None,
@@ -215,10 +304,17 @@ class TitratableSystemSet(collections.Mapping):
         del tmp
         return obj
 
-    def compute_titration_curves(self, micro=False, noequiv=False,
-                                 est_method='uwham', **kopts):
-        """Compute titration curves for the system.
+    def compute_titration_curves(self, segresids=[], notsegresids=[],
+            resnames=[], notresnames=[], micro=False, noequiv=False,
+            est_method='uwham', z=1.0, **kwopts):
+        """Compute titration curves for some (or all) of the system.
 
+        Any number of residues can be selected specifically, and the size of
+        the output will vary accordingly. Selections can be made by residue as
+        <segid:resid> or by name. If no selections are made, then the entire
+        system is returned.
+
+        Several kinds of output are possible depending on optional keywords.
         By default, all residues are treated macroscopically, as if they were
         independently isolated. If micro evaluates True, then the microscopic
         states of each residue are treated separately (the macroscopic states
@@ -229,74 +325,86 @@ class TitratableSystemSet(collections.Mapping):
         states may not be obviously statistically identical, even within
         reasonable error estimates.
 
-        Arguments
-        ---------
+        Optional Keyword Arguments
+        --------------------------
+        segresids : list
+            Explicit residue selections of the form <segid:resid>
+        notsegresids : list
+            Explicit residue exclusions of the form <segid:resid>
+        resnames : list
+            Explict selection by residue name
+        notresnames : list
+            Explicit exclusion by residue name
+        micro : bool (default: False)
+            If true, analyze microscopic states within a residue separately,
+            otherwise treat the residue macroscopically.
         noequiv : bool (default: False)
             If True, analyze non-unique states separately, otherwise aggregate
             those states such that all states are unique.
         est_method : str (default: 'uwham')
             Estimation method for state populations. Supported options are
             'uwham', 'wald', 'yates', and 'agresti-coull'
-        kopts 
-            Additional keyword options are passed directly to the MSMLE solver
-            (see msmle documentation for details). The only exception is the
-            'z' keyword, which is interpreted as a confidence interval
-            parameter and may affect the extent of bias in non-multi-state
+        z : float (default: 1.0)        
+            Confidence interval parameter (i.e. number of standard deviations
+            of the mean). This may affect the extent of bias in non-multi-state
             estimators.
+
+        Additional keyword options not listed here are passed directly to the
+        MSMLE solver (see msmle documentation for details).
 
         Returns
         -------
+        tcurve_dict : OrderedDict
+
         titration_curves : ndarray
             Two dimensional array of all requested titration curves
         titration_curve_errs : ndarray
             Two dimensional array of standard error estimates for all of the
             requested titration curves
         """
+        est_method = str(est_method).lower()
+        z2 = float(z)**2 
+
+        maskargs = segresids, notsegresids, resnames, notresnames
+        mask = self.values()[0]._selection_mask(*maskargs)
         if micro:
             if noequiv:
-                occs = self.micro_occupancies_noequiv
+                occs = self.micro_occupancies_noequiv(*maskargs)
+                nstates = mask*self.nstates_micro_noequiv
             else:
-                occs = self.micro_occupancies_equiv
+                occs = self.micro_occupancies_equiv(*maskargs)
+                nstates = mask*self.nstates_micro_equiv
         else:
-            occs = self.macro_occupancies
-        nstates = occs.shape[1]
-        titration_curves = np.zeros((nstates, self.numpHs))
-        titration_curve_errs = np.zeros((nstates, self.numpHs))
-        # The confidence parameter, z, is not a standard argument for MSMLE,
-        # but is the only parameter for other estimation types. Nonetheless, it
-        # can be used after the fact as a scale factor for the error.
-        #
-        try:
-            z2 = float(kopts.pop('z'))**2
-        except KeyError:
-            z2 = 1.0
+            occs = self.macro_occupancies(*maskargs)
+            nstates = self.nstates_macro
+        titration_curves = np.zeros((nstates.sum(), self.numpHs))
+        titration_curve_errs = np.zeros((nstates.sum(), self.numpHs))
 
-        _method = str(est_method).lower()
-        if _method in self._MULTISTATE_METHODS:
-            msmle_ = self._compute_multistate_weights(_method, **kopts)
+        if est_method in self._MULTISTATE_METHODS:
+            self._compute_multistate_weights(est_method, **kwopts)
             warnings.simplefilter("error", RuntimeWarning)
             # Iterate each state and compute the titration curve at all pHs.
             for i, occ in enumerate(occs.T):
-                p, pvar = msmle_.compute_expectations(occ, True)
+                p, pvar = self.msmle.compute_expectations(occ, True)
                 titration_curves[i] += p
                 try:
                     titration_curve_errs[i] += np.sqrt(z2*pvar)
                 except RuntimeWarning:
                     titration_curve_errs[i] = np.nan
         else:
-            if _method in ('wald', 'naive', 'yates'):
+            if est_method in ('wald', 'naive', 'yates'):
                 def get_pop(occ):
                     # The Yates method essentially adds a correction to the
                     # standard Wald estimate and then re-scales it. It is also
                     # sometimes called the Wilson score interval or just the
                     # Wilson interval.
                     n, p = occ.shape[0], occ.mean(axis=0)
-                    if _method == 'yates':
+                    if est_method == 'yates':
                         p = (2*n*p + z2) / (2*(n + z2))
                     q = 1 - p
                     pvar = z2*p*q / n
                     return p, pvar
-            elif _method == 'agresti-coull':
+            elif est_method == 'agresti-coull':
                 def get_pop(occ):
                     # The Agresti-Coull method essentially redefines the sample
                     # size and shifts the data.
@@ -306,18 +414,31 @@ class TitratableSystemSet(collections.Mapping):
                     pvar = z2*p*q / n
                     return p, pvar
             else:
-                raise ValueError('Unrecognized method %s'%str(est_method))
-            # Iterate each pH and compute the titration curve for each state. 
-            indices = np.hstack((np.zeros(1, np.int32),
-                                 self.nsamples.cumsum()
-                               ))
+                raise ValueError('Unrecognized method %s'%est_method)
+            # Iterate each pH and compute the titration curve for each state.
+            _0 = np.zeros(1, np.int32) 
+            indices = np.hstack((_0, self.nsamples.cumsum()))
             for j, (n1, n2) in enumerate(zip(indices[:-1], indices[1:])):
                 p, pvar = get_pop(occs[n1:n2])
                 titration_curves[:, j] += p
                 titration_curve_errs[:, j] += np.sqrt(pvar)
-        return titration_curves, titration_curve_errs
+        # Now package the titration curves as an ordered dict and separate by
+        # residue. Use the combined segresidname as keys.
+        #
+        segresids = self.segresids(*maskargs)
+        resnames = self.resnames(*maskargs)
+        nstates = nstates[nstates > 0]
+        tcurve_dict = collections.OrderedDict()
+        i = 0
+        for n, segresid, resname in zip(nstates, segresids, resnames):
+            segresidname = '%s:%s'%(segresid, resname)
+            j = i + n
+            tcurve_dict[segresidname] = \
+                    (titration_curves[i:j], titration_curve_errs[i:j])
+            i = j
+        return tcurve_dict 
 
-    def _compute_multistate_weights(self, est_method, **kopts):
+    def _compute_multistate_weights(self, est_method, **kwopts):
         """Create an MSMLE object with the given parameters."""
         _method = str(est_method).lower()
         if _method not in self._MULTISTATE_METHODS:
@@ -333,8 +454,8 @@ class TitratableSystemSet(collections.Mapping):
 
         # TODO: permit other estimation methods as they become available. 
         if _method == 'uwham':
-            msmle.solve_uwham(**kopts)
-        return msmle
+            msmle.solve_uwham(**kwopts)
+        self.msmle = msmle
 
 
 class TitratableSystem(list):
@@ -376,63 +497,115 @@ class TitratableSystem(list):
 
     @property
     def nsites(self):
-        """The number sites spanned by per residue"""
+        """The number of sites per residue"""
         return np.asarray([tres.nsites for tres in self])
 
     @property
     def nsamples(self):
         """The number of occupation vector samples"""
-        # TODO: Check that this is actually true for all residues?
-        #       This should never not be the case.
-        return self[0].nsamples
+        nsamples = self[0].nsamples
+        assert np.all(np.asarray([tres.nsamples for tres in self]) == nsamples)
+        return nsamples
 
     @property
     def nstates_micro_noequiv(self):
         """The number of microstates per residue without equivalencing"""
-        return np.asarray([tres.nstates_micro_noequiv for tres in self])
+        nstates = [tres.nstates_micro_noequiv for tres in self]
+        return np.array(nstates, np.int32)
 
     @property
     def nstates_micro_equiv(self):
         """The number of microstates per all residue with equivalencing"""
-        return np.asarray([tres.nstates_micro_equiv for tres in self])
+        nstates = [tres.nstates_micro_equiv for tres in self]
+        return np.array(nstates, np.int32)
 
     @property
     def nstates_macro(self):
         """The number of macrostates per residues"""
-        return np.asarray([tres.nstates_macro for tres in self])
+        nstates = [tres.nstates_macro for tres in self]
+        return np.array(nstates, np.int32)
 
-    @property
-    def micro_occupancies_noequiv(self):
+    def _selection_mask(self, segresids=[], notsegresids=[], resnames=[],
+            notresnames=[]):
+        # Return a boolean array indicating the residues to be analyzed
+        # TODO: Do any kind of error checking here...
+        mask = np.zeros(len(self), np.int32)
+        if ((len(segresids) == len(notsegresids) == 0)
+            and (len(resnames) == len(notresnames) == 0)):
+            mask += 1 
+            return mask
+
+        for i, tres in enumerate(self):
+            if tres.segresid in segresids or tres.resname in resnames:
+                mask[i] = 1
+            if tres.segresid in notsegresids or tres.resname in notresnames:
+                mask[i] *= 0
+        return mask
+
+    def _get_masked_occupancy(self, nstates, occupancy_type, mask):
+        # Allocate an array for just those protonation states that have been
+        # selected. Since we have to iterate the TitratableResidue objects
+        # anyway, rather than do a numpy mask just zero out the state count
+        # neglect those states when allocating the full array.
+        #
+        # This is probably horribly fragile if not used carefully...
+        _nstates = mask*nstates
+        occ = np.zeros((self.nsamples, _nstates.sum()), np.int32)
+        i = 0
+        for tres, n in zip(self, _nstates):
+            if n == 0:
+                continue
+            j = i + n
+            occ[:, i:j] += tres.__getattribute__(occupancy_type)
+            i = j
+        return occ
+
+    def nresidues(self, segresids=[], notsegresids=[], resnames=[],
+            notresnames=[]):
+        """See TitratableSystemSet.nresidues."""
+        args = (segresids, notsegresids, resnames, notresnames)
+        return self._selection_mask(*args).sum()
+
+    def segresids(self, segresids=[], notsegresids=[], resnames=[],
+            notresnames=[]):
+        """See TitratableSystemSet.segresids."""
+        args = (segresids, notsegresids, resnames, notresnames)
+        mask = self._selection_mask(*args)
+        return [tres.segresid for tres, m in zip(self, mask) if m]
+
+    def resnames(self, segresids=[], notsegresids=[], resnames=[], 
+            notresnames=[]):
+        """See TitratableSystemSet.segresids."""
+        args = (segresids, notsegresids, resnames, notresnames)
+        mask = self._selection_mask(*args)
+        return [tres.resname for tres, m in zip(self, mask) if m]
+ 
+    def micro_occupancies_noequiv(self, segresids=[], notsegresids=[], 
+            resnames=[], notresnames=[]):
+        """See TitratableSystemSet.micro_occupancies_noequiv."""
+        args = (segresids, notsegresids, resnames, notresnames)
         nstates = self.nstates_micro_noequiv
-        occ = np.zeros((self.nsamples, nstates.sum()), np.int32)
-        i = 0
-        for tres, n in zip(self, nstates):
-            j = i + n
-            occ[:, i:j] += tres.micro_occupancies_noequiv
-            i = j
-        return occ
+        otype = 'micro_occupancies_noequiv'
+        mask = self._selection_mask(*args)
+        return self._get_masked_occupancy(nstates, otype, mask)
 
-    @property
-    def micro_occupancies_equiv(self):
+    def micro_occupancies_equiv(self, segresids=[], notsegresids=[],
+            resnames=[], notresnames=[]):
+        """See TitratableSystemSet.micro_occupancies_equiv."""
+        args = (segresids, notsegresids, resnames, notresnames)
         nstates = self.nstates_micro_equiv
-        occ = np.zeros((self.nsamples, nstates.sum()), np.int32)
-        i = 0
-        for tres, n in zip(self, nstates):
-            j = i + n
-            occ[:, i:j] += tres.micro_occupancies_equiv
-            i = j
-        return occ
+        otype = 'micro_occupancies_equiv'
+        mask = self._selection_mask(*args)
+        return self._get_masked_occupancy(nstates, otype, mask)
 
-    @property
-    def macro_occupancies(self):
+    def macro_occupancies(self, segresids=[], notsegresids=[], resnames=[],
+            notresnames=[]):
+        """See TitratableSystemSet.macro_occupancies."""
+        args = (segresids, notsegresids, resnames, notresnames)
         nstates = self.nstates_macro
-        occ = np.zeros((self.nsamples, nstates.sum()), np.int32)
-        i = 0
-        for tres, n in zip(self, nstates):
-            j = i + n
-            occ[:, i:j] += tres.macro_occupancies
-            i = j
-        return occ
+        otype = 'macro_occupancies'
+        mask = self._selection_mask(*args)
+        return self._get_masked_occupancy(nstates, otype, mask) 
  
     def __repr__(self):
         return 'TitratableSystem(%s, %s)'%(str(self.pH), list.__repr__(self))
@@ -441,7 +614,7 @@ class TitratableSystem(list):
         if (self.pH != other.pH) or (len(self) != len(other)):
             return False
         for (sres, ores) in zip(self, other):
-            if sres.segresidname != ores.segresidname:
+            if sres.segresid != ores.segresid or sres.resname != ores.resname:
                 return False
         return True
 
@@ -498,10 +671,10 @@ class TitratableSystem(list):
         TitratableSystem objects for in-place addition. This permits use of the
         error checking from __iadd__().
         """
-        pH, res_strs, occ = TitratableSystem._read_cphlog(cphlog)
+        pH, segresidnames, occ = TitratableSystem._read_cphlog(cphlog)
         obj = cls(pH)
         i = 0
-        for segresidname in res_strs:
+        for segresidname in segresidnames:
             segid, resid, resname = segresidname.split(':')
             states = json_data[resname]['states']
             pKas = json_data[resname]['pKa']
@@ -558,7 +731,8 @@ class TitratableResidue(object):
             raise ValueError(
                     'segresidname must be of form <segid:resid:resname>'
             )
-        self.segresidname = str(segresidname)
+        self.segresid = (':'.join(tokens[0:2])).upper()
+        self.resname = tokens[2].upper()
         self.states = _validate_state_dict(states)
         self.pKas = np.asarray(pKas, np.float64)
         # Check that occupancies:
@@ -626,8 +800,9 @@ class TitratableResidue(object):
         return _missing_proton_counts
 
     def __repr__(self):
+        segresidname = ':'.join([self.segresid, self.resname])
         return ('TitratableResidue(%s, %s, %s)'
-                %(self.segresidname, str(self.states), str(self.pKas))
+                %(segresidname, str(self.states), str(self.pKas))
                )
 
     def __eq__(self, other):

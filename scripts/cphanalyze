@@ -11,14 +11,30 @@ import numpy as np
 from pynamd import TitratableSystemSet
 
 
-# BOLTZMANN = 0.001987191
 parser = argparse.ArgumentParser()
 # Required arguments
 parser.add_argument('cphlog', type=str, nargs='*', default=[],
     help='Any number of namdcph cphlog files'
 )
-parser.add_argument('--json', type=str, nargs='*', default=[],
-    help='cph JSON configuration files used during the simulation'
+required = parser.add_argument_group('required non-positional arguments')
+required.add_argument('--json', type=str, nargs='*', default=[],
+    help='cph JSON file(s) used during the simulation'
+)
+# Options for selecting residues
+selection = parser.add_argument_group('residue selection options')
+selection.add_argument('--segresids', type=str, nargs='*', default=[],
+    help=('Select specific residues for analysis with the format'
+          '<segid>:<resid>')
+)
+selection.add_argument('--notsegresids', type=str, nargs='*', default=[],
+    help=('Exclude specific residues from analysis with the format'
+          '<segid>:<resid>')
+)
+selection.add_argument('--resnames', type=str, nargs='*', default=[],
+    help='Select specific residues for analysis by residue name'
+)
+selection.add_argument('--notresnames', type=str, nargs='*', default=[],
+    help='Exclude specific residues from analysis by residue name'
 )
 # Options for reading data
 data = parser.add_argument_group('data reading options')
@@ -91,20 +107,38 @@ print('# %5s %8s'%('pH', 'nsamples'))
 for pH, n in zip(pHs, nsamples):
     print('# %5.2f %8d'%(pH, n))
 
-kopts = {'z': args.z, 'method': args.msmle_opt}
-opts = (args.micro, args.noequiv, args.method)
-titration_curves, titration_curve_errs = \
-        tset.compute_titration_curves(*opts, **kopts)
+maskopts = (args.segresids, args.notsegresids, args.resnames, args.notresnames)
+kopts = {'method': args.msmle_opt}
+
+tcurve_dict = tset.compute_titration_curves(
+    args.segresids, args.notsegresids, args.resnames, args.notresnames,
+    args.micro, args.noequiv, args.method, args.z, **kopts
+)
+
+def space_columns(colcnt):
+    colcnt += 1
+    if colcnt == 5:
+        print((' '*10), end='')
+        colcnt = 0
+    return colcnt
 
 # Print the output.
+colcnt = 0
 print('#    ', end='')
-for tres in tset.residues:
-    print(' %-13s'%tres.segresidname, end='')
+for segresidname, tcurve in tcurve_dict.iteritems(): 
+    print(' %-13s'%(segresidname), end='')
+    colcnt = space_columns(colcnt)
+    for i in xrange(tcurve[0].shape[0] - 1):
+        print((' '*14), end='')
+        colcnt = space_columns(colcnt) 
 print()
-for pH, tc, tc_err in zip(pHs, titration_curves.T, titration_curve_errs.T):
+for i, pH in enumerate(pHs):
+    colcnt = 0
     print('%5.2f'%pH, end='')
-    for p, perr in zip(tc, tc_err):
-        print(' %6.4f %6.4f'%(p, perr), end='')
+    for (tcs, tc_errs) in tcurve_dict.itervalues():
+        for p, perr in zip(tcs[:, i], tc_errs[:, i]):
+            print(' %6.4f %6.4f'%(p, perr), end='')
+            colcnt = space_columns(colcnt)
     print()
 
 #warnings.simplefilter("error", OptimizeWarning)
