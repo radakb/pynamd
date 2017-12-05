@@ -117,29 +117,31 @@ tcurve_dict = tset.compute_titration_curves(
 
 def space_columns(colcnt):
     colcnt += 1
+    spacer = ''
     if colcnt == 5:
-        print((' '*10), end='')
+        spacer = ' '*10
         colcnt = 0
-    return colcnt
+    return colcnt, spacer
 
 # Print the output.
 colcnt = 0
-print('#    ', end='')
+line = '#    '
 for segresidname, tcurve in tcurve_dict.iteritems(): 
-    print(' %-13s'%(segresidname), end='')
-    colcnt = space_columns(colcnt)
+    colcnt, spacer = space_columns(colcnt)
+    line += ' %-13s'%(segresidname) + spacer
     for i in xrange(tcurve[0].shape[0] - 1):
-        print((' '*14), end='')
-        colcnt = space_columns(colcnt) 
-print()
+        colcnt, spacer = space_columns(colcnt) 
+        line += ' '*14 + spacer
+print(line.rstrip())
+
 for i, pH in enumerate(pHs):
     colcnt = 0
-    print('%5.2f'%pH, end='')
+    line = '%5.2f'%pH
     for (tcs, tc_errs) in tcurve_dict.itervalues():
         for p, perr in zip(tcs[:, i], tc_errs[:, i]):
-            print(' %6.4f %6.4f'%(p, perr), end='')
-            colcnt = space_columns(colcnt)
-    print()
+            colcnt, spacer = space_columns(colcnt)
+            line += ' %6.4f %6.4f'%(p, perr) + spacer
+    print(line.rstrip())
 
 #warnings.simplefilter("error", OptimizeWarning)
 #fit_pKas = np.zeros((titration_curves.shape[0], npHs))

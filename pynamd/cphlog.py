@@ -365,7 +365,7 @@ class TitratableSystemSet(collections.Mapping):
         est_method = str(est_method).lower()
         z2 = float(z)**2 
 
-        maskargs = segresids, notsegresids, resnames, notresnames
+        maskargs = (segresids, notsegresids, resnames, notresnames)
         mask = self.values()[0]._selection_mask(*maskargs)
         if micro:
             if noequiv:
@@ -534,12 +534,15 @@ class TitratableSystem(list):
             and (len(resnames) == len(notresnames) == 0)):
             mask += 1 
             return mask
-
+        if len(notsegresids) > 0 or len(notresnames) > 0:
+            mask += 1
+            for i, tres in enumerate(self):
+                if (tres.segresid in notsegresids
+                    or tres.resname in notresnames):
+                    mask[i] = 0
         for i, tres in enumerate(self):
             if tres.segresid in segresids or tres.resname in resnames:
                 mask[i] = 1
-            if tres.segresid in notsegresids or tres.resname in notresnames:
-                mask[i] *= 0
         return mask
 
     def _get_masked_occupancy(self, nstates, occupancy_type, mask):
