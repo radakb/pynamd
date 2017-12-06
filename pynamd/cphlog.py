@@ -4,6 +4,7 @@ import json
 import warnings
 
 import numpy as np
+from scipy.optimize import root
 
 from pynamd.msmle import MSMLE
 
@@ -103,6 +104,14 @@ class TitratableSystemSet(collections.Mapping):
         """The number of (possibly non-unique) sites (same at all pH values).
         """
         return self.values()[0].nsites
+
+    @property
+    def nprotons(self):
+        nprotons = np.zeros(self.nsamples.sum(), np.int32)
+        indices = np.hstack((np.zeros(1, np.int32), self.nsamples.cumsum()))
+        for i, j, tsys in zip(indices[:-1], indices[1:], self.itervalues()):
+            nprotons[i:j] += tsys.nprotons
+        return nprotons
 
     @property
     def nstates_micro_noequiv(self):
@@ -303,6 +312,69 @@ class TitratableSystemSet(collections.Mapping):
             obj[pH] = tmp[pH]
         del tmp
         return obj
+
+    def compute_Hill_fit(self, segresid, micro=False, noequiv=False,
+            est_method='uwham', **kwopts):
+        """Compute the apparent pKa and Hill coefficient.
+
+        This is NOT a non-linear regression. Instead the titration curve(s)
+        is/are computed as numerical functions via WHAM and then the
+        appropriate root is found to satisfy the Hill equation (i.e. linear
+        dependence of the pKa on pH).
+        """
+        if micro:
+            if noequiv:
+                occs = self.micro_occupancies_noequiv([segresid])
+            else:
+                occs = self.micro_occupancies_equiv([segresid])
+        else:
+            occs = self.macro_occupancies([segresid])
+
+        try:
+            self.msmle
+        except AttributeError:
+            self._compute_multistate_weights(est_method, **kwopts)
+        nstates = occs.shape[1]
+        nprotons = self.nprotons
+
+
+        # Shorthand - use the WHAM weights to interpolate/extrapolate a mean
+        # at a pH value that was _not_ sampled using data from the pH values
+        # that _were_ sampled.
+        compute_mean = self.msmle.compute_unsampled_expectations
+        log10 = np.log(10)
+        # TODO: implement other cases...
+        if micro:
+            # Usually dependence on the macroscopic pKa, etc...
+            raise ValueError('Not implemented')
+        else:
+            if nstates == 1:
+                occ = occs.T[0]
+                def tcurve(pH):
+                    u = log10*pH*nprotons[np.newaxis, :]
+                    return compute_mean(occ, u, False)[0][0]
+                def obj(pH): 
+                    return tcurve(pH) - 0.5
+            else:
+                # polyprotic cases...
+                raise ValueError('Not implemented')
+        # Solve the apparent pKa as the root of the objective function.
+        soltn = root(obj, self.pHs.mean())
+        pKa = soltn.x[0]
+
+        # NB: In practice this is exactly the same as the covariance route.
+        # Compute the Hill coeff from the numerical derivative at pKa
+#        dpH = 0.01
+#        hillcoeff_deriv = (tcurve(pKa + dpH) - tcurve(pKa-dpH)) / (2*dpH)
+#        hillcoeff_deriv *= -4 / log10
+
+        # Compute the Hill coeff from the covariance with the proton count
+        u = np.log(10)*pKa*nprotons[np.newaxis, :]
+        pfrac = tcurve(pKa)
+        np_cov = compute_mean(nprotons*occ, u, False)[0][0]
+        mean_nprotons = compute_mean(nprotons, u, False)[0][0]
+        hillcoeff = 4*(np_cov - pfrac*mean_nprotons)
+        return pKa, hillcoeff
 
     def compute_titration_curves(self, segresids=[], notsegresids=[],
             resnames=[], notresnames=[], micro=False, noequiv=False,

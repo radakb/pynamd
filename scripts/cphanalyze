@@ -143,41 +143,18 @@ for i, pH in enumerate(pHs):
             line += ' %6.4f %6.4f'%(p, perr) + spacer
     print(line.rstrip())
 
-#warnings.simplefilter("error", OptimizeWarning)
-#fit_pKas = np.zeros((titration_curves.shape[0], npHs))
-#print('#fit ', end='')
-#i = 0
-#for tres in tset.residues:
-#    if args.micro:
-#        # Might be one or more titration curves.
-#        npKas = (tres.nsites if args.noequiv else tres.nstates)
-#    else:
-#        npKas = 1
-    # NB: Correlated curves are currently treated as interchangeable.
-#    tc = titration_curves[i]
-#    tc_err = titration_curve_errs[i]
-    # I need to better understand why this works...
-#    scale = 1.0 if (tres.nstates == 1 or tres.nsites != tres.nstates) else -1.0 
-#    if npKas == 2:
-#        def tcurve(pH, *params):
-#            pKa1, pKa2 = params[0], params[1]
-#            dpKa = scale*(pKa2 - pKa1)
-#            dpH = scale*(pH - pKa1)
-#            return 1 / (1 + 10**dpKa + 10**dpH)
-#    else:
-#        def tcurve(pH, *params):
-#            pKa = params[0]
-#            dpH = scale*(pH - pKa)
-#            return 1 / (1 + 10**dpH)
-#    pHguess = pHs.mean() + np.zeros(npKas)
-#    try:
-#    popt, pcov = curve_fit(tcurve, pHs, tc, pHguess, tc_err)
-#    perr = np.sqrt(np.diag(pcov))
-#    except OptimizeWarning: 
-#        pass 
-        
-#    for opt, err in zip(popt, perr):
-#        print(' %6.4f %6.4f'%(opt, err), end='')
-#    i += npKas
-#print()
+if not args.micro and not args.noequiv:
+    # For now this will break horribly if using micro/noequiv...
+    colcnt = 0
+    line1 = '#pKa '
+    line2 = '#hill'
+    for segresidname, tcurve in tcurve_dict.iteritems():
+        colcnt, spacer = space_columns(colcnt) 
+        tokens = segresidname.split(':')
+        segresid = ':'.join(tokens[0:2])
+        pKa, hillcoeff = tset.compute_Hill_fit(segresid)
+        line1 += '        %6.4f'%pKa + spacer
+        line2 += '        %6.4f'%hillcoeff + spacer
+    print(line1.rstrip())
+    print(line2.rstrip())
 
