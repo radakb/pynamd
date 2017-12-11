@@ -9,6 +9,22 @@ from scipy.optimize import root
 from pynamd.msmle import MSMLE
 
 
+# It might be useful to implement our own root finding algorithm and avoid
+# dependency on scipy.optimize...
+#def _bisect_vector(f, a, b, tol=1e-5):
+#    """Vector version of bisection method for root finding."""
+#    xmid = 0.5*(a + b)
+#    fa = f(a)
+#    fb = f(b)
+#    fmid = f(xmid)
+#    a = np.where(np.sign(fmid) == np.sign(fa), xmid, a)
+#    b = np.where(np.sign(fmid) == np.sign(fb), xmid, b)
+#    maxerr = np.amax(np.abs(b - a))
+#    if maxerr < tol:
+#        return xmid
+#    else:
+#        return _bisect_vector(f, a, b, tol)
+
 def _validate_typed_list(list_, type_):
     """Check that the argument can be cast as a list of a single type."""
     if not hasattr(list_, '__iter__'):
@@ -101,7 +117,7 @@ class TitratableSystemSet(collections.Mapping):
 
     @property
     def nsites(self):
-        """The number of (possibly non-unique) sites (same at all pH values).
+        """The number of protonation sites per residue (same at all pH values)
         """
         return self.values()[0].nsites
 
@@ -278,6 +294,13 @@ class TitratableSystemSet(collections.Mapping):
         otype = 'macro_occupancies'
         return self._combine_occupancies(nstates, otype, *args)
 
+    def site_occupancies(self, segresids=[], notsegresids=[], resnames=[],
+            notresnames=[]):
+        args = (segresids, notsegresids, resnames, notresnames)
+        nstates = self.nsites
+        otype = 'site_occupancies'
+        return self._combine_occupancies(nstates, otype, *args)
+
     @classmethod
     def from_cphlogs(cls, cphlogs, configfiles, start=None, stop=None,
                      step=None):
@@ -324,57 +347,126 @@ class TitratableSystemSet(collections.Mapping):
         """
         if micro:
             if noequiv:
-                occs = self.micro_occupancies_noequiv([segresid])
+                occs = self.micro_occupancies_noequiv([segresid]).T
             else:
-                occs = self.micro_occupancies_equiv([segresid])
+                occs = self.micro_occupancies_equiv([segresid]).T
         else:
-            occs = self.macro_occupancies([segresid])
+            occs = self.macro_occupancies([segresid]).T
 
+        # Compute the WHAM weights if we haven't already for some reason.
         try:
             self.msmle
         except AttributeError:
             self._compute_multistate_weights(est_method, **kwopts)
-        nstates = occs.shape[1]
+        nstates = occs.shape[0]
         nprotons = self.nprotons
 
-
-        # Shorthand - use the WHAM weights to interpolate/extrapolate a mean
-        # at a pH value that was _not_ sampled using data from the pH values
-        # that _were_ sampled.
-        compute_mean = self.msmle.compute_unsampled_expectations
         log10 = np.log(10)
-        # TODO: implement other cases...
-        if micro:
-            # Usually dependence on the macroscopic pKa, etc...
-            raise ValueError('Not implemented')
-        else:
-            if nstates == 1:
-                occ = occs.T[0]
+        def compute_mean(A, pH):
+            # Convenience function/shorthand
+            # Use WHAM weights to interpolate/extrapolate a mean at the given
+            # pH value. For simplicity, ignore error analysis and assume that
+            # we only use ONE pH at a time.
+            u = log10*pH*nprotons[np.newaxis, :]          
+            return self.msmle.compute_unsampled_expectations(A, u, False)[0][0]
+
+#        def compute_err(A, pH):
+#            u = log10*pH*nprotons[np.newaxis, :]
+#            return np.sqrt(
+#                self.msmle.compute_unsampled_expectations(A, u, True)[1][0]
+#            )
+        # Here we define different functions depending on the case.
+        #
+        # tcurve : return all titration curves at the given pH
+        #   pH : float
+        #   titration_curve : 1d ndarray, size = nstates
+        #
+        # obj : the objective function whose root is the apparent pKa.
+        #   pH  : 1d ndarray, size = nstates
+        #   obj : 1d ndarray, size = nstates
+        # 
+        # hill - return the Hill coefficients from the covariances at the pKas
+        #   pKas : 1d ndarray, size = nstates
+        #   hillcoeffs : 1d ndarray, size = nstates
+        #
+        if nstates == 1:
+            def tcurve(pH):
+                return np.array([compute_mean(occs[0], pH)])
+
+            def obj(pH):
+                return tcurve(pH) - 0.5
+
+            def hill(pKa):
+                nprot_p = compute_mean(nprotons*occs[0], pKa)
+                nprot = compute_mean(nprotons, pKa)
+                p = tcurve(pKa)[0]
+                return np.array([4*(nprot_p - p*nprot)])
+        elif nstates == 2:
+            if micro:
+                # Microscopic states with a shared endpoint
+                # e.g. histidine or asymmetric carboxylates
+                # NB: sign slip when shared state is [0, 0] or [1, 1]
+                pKaM, nM = self.compute_Hill_fit(segresid, False, False,
+                        est_method, **kwopts)
+                missing_prot_cnts =\
+                        self.values()[0][segresid].missing_proton_counts 
+                if 0 in missing_prot_cnts: # common endpoint is (1, 1)
+                    fac = -1.0
+                elif 2 in missing_prot_cnts: # common endpoint is (0, 0)
+                    fac = 1.0
+                else:
+                    raise ValueError("Badly constructed 2 state residue...")
+                f = lambda x: 1 / (1 + 10**(fac*nM[0]*(pKaM[0] - x)))
+
                 def tcurve(pH):
-                    u = log10*pH*nprotons[np.newaxis, :]
-                    return compute_mean(occ, u, False)[0][0]
-                def obj(pH): 
-                    return tcurve(pH) - 0.5
+                    return np.array([compute_mean(occ, pH) for occ in occs])
+
+                def obj(pH):
+                    obj1 = (tcurve(pH[0])[0] - f(pH[0]))
+                    obj2 = (tcurve(pH[1])[1] - f(pH[1]))
+                    return np.asarray([obj1, obj2])
+
+                def hill(pKas):
+                    hillcoeffs = np.zeros(2)
+
+                    nprot1 = compute_mean(nprotons, pKas[0])
+                    p1 = tcurve(pKas[0])
+                    nprot_p11 = compute_mean(nprotons*occs[0], pKas[0])
+                    nprot_p21 = compute_mean(nprotons*occs[1], pKas[0])
+                    cov11 = nprot_p11 - p1[0]*nprot1
+                    cov21 = nprot_p21 - p1[1]*nprot1
+                    hillcoeffs[0] = fac*(cov21 + 2*cov11) / f(pKas[0])
+                            
+                    nprot2 = compute_mean(nprotons, pKas[1])
+                    p2 = tcurve(pKas[1])
+                    nprot_p12 = compute_mean(nprotons*occs[0], pKas[1])
+                    nprot_p22 = compute_mean(nprotons*occs[1], pKas[1])
+                    cov12 = nprot_p12 - p2[0]*nprot2
+                    cov22 = nprot_p22 - p2[1]*nprot2
+                    hillcoeffs[1] = fac*(cov12 + 2*cov22) / f(pKas[1])
+                    return hillcoeffs
             else:
-                # polyprotic cases...
+                # diprotic residue
                 raise ValueError('Not implemented')
+        else:
+            raise ValueError('Not implemented')
+
         # Solve the apparent pKa as the root of the objective function.
-        soltn = root(obj, self.pHs.mean())
-        pKa = soltn.x[0]
+        soltn = root(obj, np.tile(self.pHs.mean(), nstates))
+        apparent_pKas = soltn.x
+        hillcoeffs = hill(apparent_pKas)
+        hillcoeffs[apparent_pKas < 0] = np.nan
+        apparent_pKas[apparent_pKas < 0] = np.nan
 
-        # NB: In practice this is exactly the same as the covariance route.
-        # Compute the Hill coeff from the numerical derivative at pKa
-#        dpH = 0.01
-#        hillcoeff_deriv = (tcurve(pKa + dpH) - tcurve(pKa-dpH)) / (2*dpH)
-#        hillcoeff_deriv *= -4 / log10
-
-        # Compute the Hill coeff from the covariance with the proton count
-        u = np.log(10)*pKa*nprotons[np.newaxis, :]
-        pfrac = tcurve(pKa)
-        np_cov = compute_mean(nprotons*occ, u, False)[0][0]
-        mean_nprotons = compute_mean(nprotons, u, False)[0][0]
-        hillcoeff = 4*(np_cov - pfrac*mean_nprotons)
-        return pKa, hillcoeff
+#        sites = self.macro_occupancies() #self.site_occupancies()
+#        hill_psite = np.zeros(sites.shape[1])
+#        for i, site in enumerate(sites.T):
+#            s = compute_mean(site, u, False)[0][0]
+#            sp_cov = compute_mean(site*occ, u, False)[0][0]
+#            hill_psite[i] += 4*(sp_cov - pfrac*s)
+#        print hill_psite
+#        print hill_psite.sum()
+        return apparent_pKas, hillcoeffs
 
     def compute_titration_curves(self, segresids=[], notsegresids=[],
             resnames=[], notresnames=[], micro=False, noequiv=False,
@@ -530,7 +622,7 @@ class TitratableSystemSet(collections.Mapping):
         self.msmle = msmle
 
 
-class TitratableSystem(list):
+class TitratableSystem(collections.Mapping):
     """A system of multiple titratable residues in contact with the same pH
 
     Parameters
@@ -540,18 +632,43 @@ class TitratableSystem(list):
     titratable_residues : TitratableResidue
         One or more TitratableResidue objects
     """
-    def __init__(self, pH, *titratable_residues):
+    def __init__(self, pH, *args, **kwargs):
         self.pH = _validate_float(pH)
-        list.__init__(self, *titratable_residues)
+        self._od = collections.OrderedDict(*args, **kwargs)
 
-    def append(self, titratable_residue):
+    def __delitem__(self, segresid):
+        del self._od[str(segresid)]
+
+    def __getitem__(self, segresid):
+        return self._od[str(segresid)]
+
+    def __iter__(self):
+        return iter(self._od)
+
+    def __len__(self):
+        return len(self._od)
+
+    def __setitem__(self, segresid, titratable_residue):
+        """Adds restriction that all keys be <segid:resid> labels and all
+        values be TitratableResidue objects.
+        """
+        tokens = str(segresid).split(':')
+        if len(tokens) != 2:
+            raise ValueError('segresid must be of the form <segid:resid>')
+        try:
+            int(tokens[1])
+        except ValueError:
+            raise ValueError('resid must be an integer, got %s'%tokens[1])
         if not isinstance(titratable_residue, TitratableResidue):
-            raise TypeError('Can only add TitratableResidue objects.')
-        list.append(self, titratable_residue)
+            raise ValueError(
+              'TitratableSystems can only contain TitratableResidue objects'
+            )
+        # TODO: Enforce that the systems have the same residue structure.
+        self._od[str(segresid)] = titratable_residue
 
     def subsample(self, start, stop, step):
         """Modify the data set for all residues in-place."""
-        for tres in self:
+        for tres in self.itervalues():
             tres.site_occupancies = tres.site_occupancies[start:stop:step]
 
     @property
@@ -565,36 +682,40 @@ class TitratableSystem(list):
 
         This is just the sum of site occupancies of all residues.
         """
-        return np.hstack((tres.site_occupancies for tres in self)).sum(axis=1)
+        return np.hstack(
+            (tres.site_occupancies for tres in self.itervalues())
+        ).sum(axis=1)
 
     @property
     def nsites(self):
         """The number of sites per residue"""
-        return np.asarray([tres.nsites for tres in self])
+        return np.array([tres.nsites for tres in self.itervalues()], np.int32)
 
     @property
     def nsamples(self):
         """The number of occupation vector samples"""
-        nsamples = self[0].nsamples
-        assert np.all(np.asarray([tres.nsamples for tres in self]) == nsamples)
+        nsamples = self.values()[0].nsamples
+        assert np.all(
+          np.asarray([tres.nsamples for tres in self.itervalues()]) == nsamples
+        )
         return nsamples
 
     @property
     def nstates_micro_noequiv(self):
         """The number of microstates per residue without equivalencing"""
-        nstates = [tres.nstates_micro_noequiv for tres in self]
+        nstates = [tres.nstates_micro_noequiv for tres in self.itervalues()]
         return np.array(nstates, np.int32)
 
     @property
     def nstates_micro_equiv(self):
         """The number of microstates per all residue with equivalencing"""
-        nstates = [tres.nstates_micro_equiv for tres in self]
+        nstates = [tres.nstates_micro_equiv for tres in self.itervalues()]
         return np.array(nstates, np.int32)
 
     @property
     def nstates_macro(self):
         """The number of macrostates per residues"""
-        nstates = [tres.nstates_macro for tres in self]
+        nstates = [tres.nstates_macro for tres in self.itervalues()]
         return np.array(nstates, np.int32)
 
     def _selection_mask(self, segresids=[], notsegresids=[], resnames=[],
@@ -608,11 +729,11 @@ class TitratableSystem(list):
             return mask
         if len(notsegresids) > 0 or len(notresnames) > 0:
             mask += 1
-            for i, tres in enumerate(self):
+            for i, tres in enumerate(self.itervalues()):
                 if (tres.segresid in notsegresids
                     or tres.resname in notresnames):
                     mask[i] = 0
-        for i, tres in enumerate(self):
+        for i, tres in enumerate(self.itervalues()):
             if tres.segresid in segresids or tres.resname in resnames:
                 mask[i] = 1
         return mask
@@ -627,7 +748,7 @@ class TitratableSystem(list):
         _nstates = mask*nstates
         occ = np.zeros((self.nsamples, _nstates.sum()), np.int32)
         i = 0
-        for tres, n in zip(self, _nstates):
+        for tres, n in zip(self.itervalues(), _nstates):
             if n == 0:
                 continue
             j = i + n
@@ -646,14 +767,14 @@ class TitratableSystem(list):
         """See TitratableSystemSet.segresids."""
         args = (segresids, notsegresids, resnames, notresnames)
         mask = self._selection_mask(*args)
-        return [tres.segresid for tres, m in zip(self, mask) if m]
+        return [tres.segresid for tres, m in zip(self.itervalues(), mask) if m]
 
     def resnames(self, segresids=[], notsegresids=[], resnames=[], 
             notresnames=[]):
         """See TitratableSystemSet.segresids."""
         args = (segresids, notsegresids, resnames, notresnames)
         mask = self._selection_mask(*args)
-        return [tres.resname for tres, m in zip(self, mask) if m]
+        return [tres.resname for tres, m in zip(self.itervalues(), mask) if m]
  
     def micro_occupancies_noequiv(self, segresids=[], notsegresids=[], 
             resnames=[], notresnames=[]):
@@ -682,14 +803,23 @@ class TitratableSystem(list):
         mask = self._selection_mask(*args)
         return self._get_masked_occupancy(nstates, otype, mask) 
  
+    def site_occupancies(self, segresids=[], notsegresids=[], resnames=[],
+            notresnames=[]):
+        """See TitratableSystemSet.site_occupancies."""
+        args = (segresids, notsegresids, resnames, notresnames)
+        nstates = self.nsites
+        otype = 'site_occupancies'
+        mask = self._selection_mask(*args)
+        return self._get_masked_occupancy(nstates, otype, mask)
+
     def __repr__(self):
         return 'TitratableSystem(%s, %s)'%(str(self.pH), list.__repr__(self))
 
     def __eq__(self, other):
         if (self.pH != other.pH) or (len(self) != len(other)):
             return False
-        for (sres, ores) in zip(self, other):
-            if sres.segresid != ores.segresid or sres.resname != ores.resname:
+        for (sres, ores) in zip(self.iteritems(), other.iteritems()):
+            if sres[0] != ores[0] or sres[1].resname != ores[1].resname:
                 return False
         return True
 
@@ -697,7 +827,7 @@ class TitratableSystem(list):
         """In-place addition - concatenate occupancies if otherwise equal."""
         if not self == other:
             raise TypeError('Cannot add - mismatch in system pH or residues.')
-        for (sres, ores) in zip(self, other):
+        for (sres, ores) in zip(self.itervalues(), other.itervalues()):
             sres += ores
         return self
 
@@ -755,9 +885,9 @@ class TitratableSystem(list):
             pKas = json_data[resname]['pKa']
             nsites = len(states.itervalues().next())
             j = i + nsites
-            obj.append(
-                TitratableResidue(segresidname, states, pKas, occ[:, i:j])
-            )
+            segresid = '%s:%s'%(segid, resid)
+            obj[segresid] =\
+                    TitratableResidue(segresidname, states, pKas, occ[:, i:j])
             i = j
         return obj
 
@@ -934,10 +1064,12 @@ class TitratableResidue(object):
             return occ
         elif self.nsites == 2:
             # There are four possible states, but one is often missing.
-            if self.nstates == 3:
+            if self.nstates == 3 and len(self.pKas) == 2:
                 return np.vstack(
                         ((1 - occ[:, 0])*occ[:, 1], occ[:, 0]*(1 - occ[:, 1]))
                 ).T
+            elif self.nstates == 3 and len(self.pKas) == 1:
+                return occ
         elif self.nsites == 3:
             # There are eight possible states, but four are often missing.
             if self.nstates == 4 and prot_cnts_are_missing:
