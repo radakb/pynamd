@@ -2,11 +2,6 @@
 from __future__ import division, print_function
 import argparse
 import sys
-import math
-import warnings
-
-import numpy as np
-# from scipy.optimize import curve_fit, OptimizeWarning
 
 from pynamd import TitratableSystemSet
 
@@ -75,6 +70,9 @@ analysis.add_argument('-z', type=float, default=1.0,
 analysis.add_argument('--msmle_opt', type=str, default='trust-ncg',
     help='Scipy minimizer to use for MSMLE'
 )
+analysis.add_argument('--nohill', action='store_true',
+    help='Do not perform Hill analysis'
+)
 
 if len(sys.argv) < 2:
     parser.print_help()
@@ -86,36 +84,44 @@ if len(args.json) == 0:
 if args.stop < 0 or args.stop < args.start:
     args.stop = None
 
-if args.wald:
-    args.method = 'wald'
-elif args.yates:
-    args.method = 'yates'
-elif args.agresti_coull:
-    args.method = 'agresti-coull'
-else:
+args.method = ('wald' if args.wald else None)
+args.method = ('yates' if args.yates else None)
+args.method = ('agresti-coull' if args.agresti_coull else None)
+if args.method is None:
     args.method = 'uwham'
-if args.noequiv:
-    args.micro = True
 
+args.micro = (True if args.noequiv else args.micro)
+
+#
 # Read in, subsample, and sort all of the data.
+#
 tset = TitratableSystemSet.from_cphlogs(args.cphlog, args.json,
                                         args.start, args.stop, args.step)
 pHs, npHs, nsamples = tset.pHs, tset.numpHs, tset.nsamples
+
+#
 # Print a quick report regarding what was read.
+#
 print('# Read %d cphlog files (%d pH values)'%(len(args.cphlog), npHs))
 print('# %5s %8s'%('pH', 'nsamples'))
 for pH, n in zip(pHs, nsamples):
     print('# %5.2f %8d'%(pH, n))
 
-maskopts = (args.segresids, args.notsegresids, args.resnames, args.notresnames)
+#
+# Each value in tcurve_dict is an ndarray with one or more titration curves.
+# The key for each value is the <segid:resid:resname> identifier for that
+# residue.
+#
 kopts = {'method': args.msmle_opt}
-
 tcurve_dict = tset.compute_titration_curves(
     args.segresids, args.notsegresids, args.resnames, args.notresnames,
     args.micro, args.noequiv, args.method, args.z, **kopts
 )
 
 def space_columns(colcnt):
+    """Add whitespace so that lines wrap at 80 characters. This alignment
+    assumes a 5 char label and then 5 14 character columns.
+    """
     colcnt += 1
     spacer = ''
     if colcnt == 5:
@@ -123,7 +129,9 @@ def space_columns(colcnt):
         colcnt = 0
     return colcnt, spacer
 
-# Print the output.
+#
+# Print a header with residue information (<segid:resid:resname>).
+#
 colcnt = 0
 line = '#    '
 for segresidname, tcurve in tcurve_dict.iteritems(): 
@@ -134,6 +142,9 @@ for segresidname, tcurve in tcurve_dict.iteritems():
         line += ' '*14 + spacer
 print(line.rstrip())
 
+#
+# Print the titration curves per state.
+#
 for i, pH in enumerate(pHs):
     colcnt = 0
     line = '%5.2f'%pH
@@ -143,11 +154,12 @@ for i, pH in enumerate(pHs):
             line += ' %6.4f %6.4f'%(p, perr) + spacer
     print(line.rstrip())
 
-if args.wald or args.yates or args.agresti_coull:
+if args.wald or args.yates or args.agresti_coull or args.nohill:
     sys.exit()
 
-# if not args.micro and not args.noequiv:
-# For now this will break horribly if using micro/noequiv...
+#
+# Hill analysis (may be time consuming) - requires a multistate estimator 
+#
 opts = (args.micro, args.noequiv)
 colcnt = 0
 line1 = '#pKa '
@@ -162,12 +174,13 @@ for segresidname in tcurve_dict.iterkeys():
             line1 += '        %6.4f'%pKa + spacer
             line2 += '        %6.4f'%hillcoeff + spacer
     except ValueError:
-        tcurve = tcurve_dict[segresidname]
-        for i in xrange(tcurve[1].shape[0]):
+        nstates = tcurve_dict[segresidname][1].shape[0]
+        for i in xrange(nstates):
             colcnt, spacer = space_columns(colcnt)
             line1 += ' '*12 + '--' + spacer
             line2 += ' '*12 + '--' + spacer
 print(line1.rstrip())
 print(line2.rstrip())
 print("# nan indicates the pKa is probably outside the given pH range")
-print("# -- indicates that this micro/noequiv is not implemented") 
+print("# -- indicates that this micro/noequiv is not implemented")
+
