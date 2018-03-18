@@ -3,6 +3,8 @@ from __future__ import division, print_function
 import argparse
 import sys
 
+import numpy as np
+
 from pynamd import TitratableSystemSet
 
 
@@ -73,6 +75,9 @@ analysis.add_argument('--msmle_opt', type=str, default='trust-ncg',
 analysis.add_argument('--nohill', action='store_true',
     help='Do not perform Hill analysis'
 )
+analysis.add_argument('--hilldecomp', type=str, default=None, 
+    help='Perform Hill decomposition and output to this file.'
+)
 
 if len(sys.argv) < 2:
     parser.print_help()
@@ -84,11 +89,10 @@ if len(args.json) == 0:
 if args.stop < 0 or args.stop < args.start:
     args.stop = None
 
-args.method = ('wald' if args.wald else None)
-args.method = ('yates' if args.yates else None)
-args.method = ('agresti-coull' if args.agresti_coull else None)
-if args.method is None:
-    args.method = 'uwham'
+args.method = 'uwham'
+args.method = ('wald' if args.wald else args.method)
+args.method = ('yates' if args.yates else args.method)
+args.method = ('agresti-coull' if args.agresti_coull else args.method)
 
 args.micro = (True if args.noequiv else args.micro)
 
@@ -133,14 +137,14 @@ def space_columns(colcnt):
 # Print a header with residue information (<segid:resid:resname>).
 #
 colcnt = 0
-line = '#    '
+header = '#    '
 for segresidname, tcurve in tcurve_dict.iteritems(): 
     colcnt, spacer = space_columns(colcnt)
-    line += ' %-13s'%(segresidname) + spacer
+    header += ' %-13s'%(segresidname) + spacer
     for i in xrange(tcurve[0].shape[0] - 1):
         colcnt, spacer = space_columns(colcnt) 
-        line += ' '*14 + spacer
-print(line.rstrip())
+        header += ' '*14 + spacer
+print(header.rstrip())
 
 #
 # Print the titration curves per state.
@@ -160,19 +164,25 @@ if args.wald or args.yates or args.agresti_coull or args.nohill:
 #
 # Hill analysis (may be time consuming) - requires a multistate estimator 
 #
-opts = (args.micro, args.noequiv)
+dohilldecomp = (args.hilldecomp is not None)
+opts = (args.micro, args.noequiv, dohilldecomp)
 colcnt = 0
 line1 = '#pKa '
 line2 = '#hill'
+hilloutput = []
+hilllabels = []
 for segresidname in tcurve_dict.iterkeys():
-    tokens = segresidname.split(':')
-    segresid = ':'.join(tokens[0:2])
     try:
-        pKas, hillcoeffs = tset.compute_Hill_fit(segresid, *opts)
+        pKas, hillcoeffs = tset.compute_Hill_fit(segresidname, *opts)
         for pKa, hillcoeff in zip(pKas, hillcoeffs):
             colcnt, spacer = space_columns(colcnt)
             line1 += '        %6.4f'%pKa + spacer
-            line2 += '        %6.4f'%hillcoeff + spacer
+            if not dohilldecomp:
+                line2 += '        %6.4f'%hillcoeff + spacer
+            else:
+                line2 += '        %6.4f'%hillcoeff.sum() + spacer
+                hilloutput.append(hillcoeff)
+                hilllabels.append(segresidname)
     except ValueError:
         nstates = tcurve_dict[segresidname][1].shape[0]
         for i in xrange(nstates):
@@ -183,4 +193,18 @@ print(line1.rstrip())
 print(line2.rstrip())
 print("# nan indicates the pKa is probably outside the given pH range")
 print("# -- indicates that this micro/noequiv is not implemented")
+if dohilldecomp:
+    hilloutfile = open(str(args.hilldecomp), 'w')
+    hilloutfile.write('%-14s'%'residues')
+    for label in hilllabels:
+        hilloutfile.write(' %-13s'%label)
+    hilloutfile.write('\n')
+    x = np.asarray(hilloutput).T
+    for segresid, resname, hillcoeffs in zip(tset.segresids(), tset.resnames(), x):
+        hilloutfile.write('%-14s'%(':'.join([segresid, resname])))
+        for hillcoeff in hillcoeffs:
+#            hillcoeff = (hillcoeff if hillcoeff != 1.0 else 0.0)
+            hilloutfile.write(' % 13.4f'%hillcoeff)
+        hilloutfile.write('\n')
+    hilloutfile.close()
 

@@ -336,24 +336,59 @@ class TitratableSystemSet(collections.Mapping):
         del tmp
         return obj
 
-    def compute_Hill_fit(self, segresid, micro=False, noequiv=False,
-            est_method='uwham', **kwopts):
+    def compute_Hill_fit(self, segresidname, micro=False, noequiv=False,
+            decomp=False, est_method='uwham', **kwopts):
         """Compute the apparent pKa and Hill coefficient.
 
         This is NOT a non-linear regression. Instead the titration curve(s)
         is/are computed as numerical functions via WHAM and then the
         appropriate root is found to satisfy the Hill equation (i.e. linear
         dependence of the pKa on pH).
+
+        Arguments
+        ---------
+        segresidname : str <segid:resid:resname>
+            The residue to be analyzed
+        micro : bool (default: False)
+            If true, separate the residue into its microstates
+        noequiv : bool (default: False)
+            If true, separate a priori equivalent microstates 
+        decomp : bool (default: False)
+            If true, decompose the Hill coefficient into its per residue
+            contributions
+        est_method : str (default: uwham)
+            If not already done, perform multistate analysis using the
+            specified method
+        
+        All other keyword options are passed directly to the MSMLE solver,
+        but these are only used if no such calculation has already been done.
+
+        Returns
+        -------
+        apparent_pKas : 1d ndarray
+            The apparent pKas of each state
+        hillcoeffs : 1d or 2d ndarray
+            The Hill coefficients for each state. If decomp is True then this
+            is a 2d array and the second axis has one entry for every _other_
+            residue. Summing along that axis will yield the same result as if
+            decomp were False.
+
         """
+        segid, resid, resname = segresidname.split(':')
+        segresid = '%s:%s'%(segid, resid)
+        kwargs = {'segresids': [segresid], 'resnames': [resname]}
         if micro:
             if noequiv:
-                occs = self.micro_occupancies_noequiv([segresid]).T
+                occs = self.micro_occupancies_noequiv(**kwargs).T
             else:
-                occs = self.micro_occupancies_equiv([segresid]).T
+                occs = self.micro_occupancies_equiv(**kwargs).T
         else:
-            occs = self.macro_occupancies([segresid]).T
+            occs = self.macro_occupancies(**kwargs).T
 
-        # Compute the WHAM weights if we haven't already for some reason.
+        if decomp:
+            refs = self.macro_occupancies().T
+
+        # Compute the WHAM weights if we haven't already.
         try:
             self.msmle
         except AttributeError:
@@ -387,85 +422,200 @@ class TitratableSystemSet(collections.Mapping):
         # 
         # hill - return the Hill coefficients from the covariances at the pKas
         #   pKas : 1d ndarray, size = nstates
-        #   hillcoeffs : 1d ndarray, size = nstates
+        #   hillcoeffs : ndarray
+        #     decomp = False - shape = (nstates)
+        #     decomp = True  - shape = (nstates, nresidues)
         #
+        tres = self.values()[0][segresidname]
+        pKa_ref = tres.pKas
+        missing_prot_cnts = tres.missing_proton_counts
+
+        # For special cases the sign changes depending on which states are
+        # excluded from the cycle. The reasons for choosing a sign here will
+        # probably not be obvious, so look below before trying to make sense of
+        # this.
+        if (nstates == 2 and micro) or (nstates == 1 and pKa_ref.size == 2):
+            if 0 in missing_prot_cnts: # common endpoint is (1, 1)
+                sgn = -1.0
+            elif 2 in missing_prot_cnts: # common endpoint is (0, 0)
+                sgn = 1.0
+            else:
+                raise ValueError("Badly constructed 2 state residue...")
+
         if nstates == 1:
+            # One macrostate - The apparent pKa is the pH at which the
+            # protonated and deprotonated fractions are equal (i.e. 1/2).
+            #
+            if pKa_ref.size == 2:
+                pKa_ref = np.atleast_1d(sgn*np.log10(
+                        10**(sgn*pKa_ref[0]) + 10**(sgn*pKa_ref[1])
+                ))
+
             def tcurve(pH):
                 return np.array([compute_mean(occs[0], pH)])
 
             def obj(pH):
                 return tcurve(pH) - 0.5
 
-            def hill(pKa):
-                nprot_p = compute_mean(nprotons*occs[0], pKa)
-                nprot = compute_mean(nprotons, pKa)
-                p = tcurve(pKa)[0]
-                return np.array([4*(nprot_p - p*nprot)])
+            if not decomp:
+                def hill(pKa):
+                    nprot_p = compute_mean(nprotons*occs[0], pKa)
+                    nprot = compute_mean(nprotons, pKa)
+                    p = tcurve(pKa)[0]
+                    return np.array([4*(nprot_p - p*nprot)])
+            else:
+                def hill(pKa):
+                    hillcoeffs = np.zeros((1, refs.shape[0]))
+                    p = tcurve(pKa)[0]
+                    for i, ref in enumerate(refs):
+                        q = compute_mean(ref, pKa)
+                        q_p = compute_mean(ref*occs[0], pKa)
+                        hillcoeffs[0, i] = 4*(q_p - p*q)
+                    return hillcoeffs
         elif nstates == 2:
             if micro:
-                # Microscopic states with a shared endpoint
+                # Microscopic states with a shared endpoint - The apparent
+                # pKas depend on the combined macroscopic values.
                 # e.g. histidine or asymmetric carboxylates
-                # NB: sign slip when shared state is [0, 0] or [1, 1]
-                pKaM, nM = self.compute_Hill_fit(segresid, False, False,
-                        est_method, **kwopts)
-                missing_prot_cnts =\
-                        self.values()[0][segresid].missing_proton_counts 
-                if 0 in missing_prot_cnts: # common endpoint is (1, 1)
-                    fac = -1.0
-                elif 2 in missing_prot_cnts: # common endpoint is (0, 0)
-                    fac = 1.0
-                else:
-                    raise ValueError("Badly constructed 2 state residue...")
-                f = lambda x: 1 / (1 + 10**(fac*nM[0]*(pKaM[0] - x)))
+                #
+                pKaM, nM = self.compute_Hill_fit(segresidname, False, False,
+                        False, est_method, **kwopts)
+                def f(pH):
+                    exponent = sgn*nM[0]*(pKaM[0] - pH)
+                    if np.abs(exponent) > 100.0:
+                        return (1.0 if exponent < 0.0 else 0.0)
+                    return 1 / (1 + 10**(exponent))
 
                 def tcurve(pH):
                     return np.array([compute_mean(occ, pH) for occ in occs])
 
                 def obj(pH):
-                    obj1 = (tcurve(pH[0])[0] - f(pH[0]))
-                    obj2 = (tcurve(pH[1])[1] - f(pH[1]))
+                    obj1 = tcurve(pH[0])[0] - f(pH[0])
+                    obj2 = tcurve(pH[1])[1] - f(pH[1])
                     return np.asarray([obj1, obj2])
 
-                def hill(pKas):
-                    hillcoeffs = np.zeros(2)
+                if not decomp: 
+                    def hill(pKas):
+                        hillcoeffs = np.zeros(2)
 
-                    nprot1 = compute_mean(nprotons, pKas[0])
-                    p1 = tcurve(pKas[0])
-                    nprot_p11 = compute_mean(nprotons*occs[0], pKas[0])
-                    nprot_p21 = compute_mean(nprotons*occs[1], pKas[0])
-                    cov11 = nprot_p11 - p1[0]*nprot1
-                    cov21 = nprot_p21 - p1[1]*nprot1
-                    hillcoeffs[0] = fac*(cov21 + 2*cov11) / f(pKas[0])
+                        nprot1 = compute_mean(nprotons, pKas[0])
+                        p1 = tcurve(pKas[0])
+                        nprot_p11 = compute_mean(nprotons*occs[0], pKas[0])
+                        nprot_p21 = compute_mean(nprotons*occs[1], pKas[0])
+                        cov11 = nprot_p11 - p1[0]*nprot1
+                        cov21 = nprot_p21 - p1[1]*nprot1
+                        hillcoeffs[0] = sgn*(cov21 + 2*cov11) / f(pKas[0])
                             
-                    nprot2 = compute_mean(nprotons, pKas[1])
-                    p2 = tcurve(pKas[1])
-                    nprot_p12 = compute_mean(nprotons*occs[0], pKas[1])
-                    nprot_p22 = compute_mean(nprotons*occs[1], pKas[1])
-                    cov12 = nprot_p12 - p2[0]*nprot2
-                    cov22 = nprot_p22 - p2[1]*nprot2
-                    hillcoeffs[1] = fac*(cov12 + 2*cov22) / f(pKas[1])
-                    return hillcoeffs
+                        nprot2 = compute_mean(nprotons, pKas[1])
+                        p2 = tcurve(pKas[1])
+                        nprot_p12 = compute_mean(nprotons*occs[0], pKas[1])
+                        nprot_p22 = compute_mean(nprotons*occs[1], pKas[1])
+                        cov12 = nprot_p12 - p2[0]*nprot2
+                        cov22 = nprot_p22 - p2[1]*nprot2
+                        hillcoeffs[1] = sgn*(cov12 + 2*cov22) / f(pKas[1])
+                        return hillcoeffs
+                else:
+                    def hill(pKas):
+                        hillcoeffs = np.zeros((2, refs.shape[0]))
+                        p1 = tcurve(pKas[0])
+                        p2 = tcurve(pKas[1])
+                        for i, ref in enumerate(refs):
+                            q1 = compute_mean(ref, pKas[0])
+                            q_p11 = compute_mean(ref*occs[0], pKas[0])
+                            q_p21 = compute_mean(ref*occs[1], pKas[0])
+                            cov11 = q_p11 - p1[0]*q1
+                            cov21 = q_p21 - p1[1]*q1
+                            hillcoeffs[0, i] = sgn*(cov21 + 2*cov11)
+
+                            q2 = compute_mean(ref, pKas[1])
+                            q_p12 = compute_mean(ref*occs[0], pKas[1])
+                            q_p22 = compute_mean(ref*occs[1], pKas[1])
+                            cov12 = q_p12 - p2[0]*q2
+                            cov22 = q_p22 - p2[1]*q2
+                            hillcoeffs[1, i] = sgn*(cov12 + 2*cov22)
+                        hillcoeffs[0, :] /= f(pKas[0])
+                        hillcoeffs[1, :] /= f(pKas[1])
+                        return hillcoeffs
             else:
-                # diprotic residue
-                raise ValueError('Not implemented')
+                # diprotic residue - There's a lot of symmetry here, so we
+                # really only have to track the population of one proton
+                # states (occs[1]). There are only two parameters at the
+                # apparent pKas, p1[1] ~= 1/2 and p2[0] ~= 0. These change the
+                # more independent the sequential titrations are (i.e. the
+                # smaller pKas[1] - pKas[0] is). 
+                #
+                def tcurve(pH):
+                    return np.array([compute_mean(occ, pH) for occ in occs])
+
+                def obj(pH):
+                    P1, P2 = tcurve(pH[0]), tcurve(pH[1])
+                    obj1 = 2*P2[1] + P2[0] - 1 
+                    obj2 = P1[1] - P1[0]
+                    return np.asarray([obj1, obj2])
+
+                if not decomp:
+                    def hill(pKas):
+                        hillcoeffs = np.zeros(2)
+
+                        nprot1 = compute_mean(nprotons, pKas[0])
+                        nprot2 = compute_mean(nprotons, pKas[1])
+                        p1 = tcurve(pKas[0])
+                        p2 = tcurve(pKas[1])
+                        nprot_p11 = compute_mean(nprotons*occs[1], pKas[0])
+                        nprot_p12 = compute_mean(nprotons*occs[1], pKas[1])
+
+                        cov11 = nprot_p11 - p1[1]*nprot1
+                        cov12 = nprot_p12 - p2[1]*nprot2
+                        fac = 1 / (p1[1]*(p1[1]**2 - p2[0]**2))
+
+                        hillcoeffs[0] = -fac*(p1[1]*cov11 - p2[0]*cov12)
+                        hillcoeffs[1] = +fac*(p1[1]*cov12 - p2[0]*cov11)
+
+                        return hillcoeffs 
+                else:
+                    raise ValueError('Not implemented')
         else:
             raise ValueError('Not implemented')
 
         # Solve the apparent pKa as the root of the objective function.
-        soltn = root(obj, np.tile(self.pHs.mean(), nstates))
+        pKa_guess = np.zeros(nstates)
+        if pKa_ref.size != nstates:
+            pKa_ref = np.tile(pKa_ref, nstates)
+
+        for i in xrange(nstates):
+            p = tcurve(pKa_ref[i])[i]
+            if p < 0.1:
+                pKa_ref[i] -= 0.5
+                p = tcurve(pKa_ref[i])[i]
+            if 0.9 < p:
+                pKa_ref[i] += 0.5
+                p = tcurve(pKa_ref[i])[i]
+            pKa_guess[i] += pKa_ref[i] + np.log10((1-p)/p)
+
+        attempts = 0
+        while True:
+            attempts += 1
+            soltn = root(obj, pKa_guess)
+            if soltn.success or attempts >= 5:
+               break
+            dpKa = (-1)**(pKa_guess < soltn.x)
+            pKa_guess += 0.5*dpKa
+
         apparent_pKas = soltn.x
         hillcoeffs = hill(apparent_pKas)
-        hillcoeffs[apparent_pKas < 0] = np.nan
-        apparent_pKas[apparent_pKas < 0] = np.nan
-
-#        sites = self.macro_occupancies() #self.site_occupancies()
-#        hill_psite = np.zeros(sites.shape[1])
-#        for i, site in enumerate(sites.T):
-#            s = compute_mean(site, u, False)[0][0]
-#            sp_cov = compute_mean(site*occ, u, False)[0][0]
-#            hill_psite[i] += 4*(sp_cov - pfrac*s)
-#        print hill_psite
-#        print hill_psite.sum()
+        # Mask out bad roots. Usually this means the apparent pKa is outside
+        # the pH range and is not well estimated. Rather than return garbage
+        # report that this failed.
+        #
+        if hillcoeffs.ndim == 1:
+            hillcoeffs[apparent_pKas <  0.0] = np.nan
+            hillcoeffs[apparent_pKas > 14.0] = np.nan
+        else:
+            for state, pKa in zip(hillcoeffs, apparent_pKas):
+                state[pKa <  0.0] = np.nan
+                state[pKa > 14.0] = np.nan
+        apparent_pKas[apparent_pKas <  0.0] = np.nan
+        apparent_pKas[apparent_pKas > 14.0] = np.nan
         return apparent_pKas, hillcoeffs
 
     def compute_titration_curves(self, segresids=[], notsegresids=[],
@@ -636,11 +786,11 @@ class TitratableSystem(collections.Mapping):
         self.pH = _validate_float(pH)
         self._od = collections.OrderedDict(*args, **kwargs)
 
-    def __delitem__(self, segresid):
-        del self._od[str(segresid)]
+    def __delitem__(self, segresidname):
+        del self._od[str(segresidname)]
 
-    def __getitem__(self, segresid):
-        return self._od[str(segresid)]
+    def __getitem__(self, segresidname):
+        return self._od[str(segresidname)]
 
     def __iter__(self):
         return iter(self._od)
@@ -648,13 +798,15 @@ class TitratableSystem(collections.Mapping):
     def __len__(self):
         return len(self._od)
 
-    def __setitem__(self, segresid, titratable_residue):
+    def __setitem__(self, segresidname, titratable_residue):
         """Adds restriction that all keys be <segid:resid> labels and all
         values be TitratableResidue objects.
         """
-        tokens = str(segresid).split(':')
-        if len(tokens) != 2:
-            raise ValueError('segresid must be of the form <segid:resid>')
+        tokens = str(segresidname).split(':')
+        if len(tokens) != 3:
+            raise ValueError(
+                'segresidname must be of the form <segid:resid>:<resname>'
+            )
         try:
             int(tokens[1])
         except ValueError:
@@ -664,7 +816,7 @@ class TitratableSystem(collections.Mapping):
               'TitratableSystems can only contain TitratableResidue objects'
             )
         # TODO: Enforce that the systems have the same residue structure.
-        self._od[str(segresid)] = titratable_residue
+        self._od[str(segresidname)] = titratable_residue
 
     def subsample(self, start, stop, step):
         """Modify the data set for all residues in-place."""
@@ -734,7 +886,9 @@ class TitratableSystem(collections.Mapping):
                     or tres.resname in notresnames):
                     mask[i] = 0
         for i, tres in enumerate(self.itervalues()):
-            if tres.segresid in segresids or tres.resname in resnames:
+            if ((tres.segresid in segresids and tres.resname in resnames)
+               or (tres.segresid in segresids and len(resnames) == 0)
+               or (len(segresids) == 0 and tres.resname in resnames)): 
                 mask[i] = 1
         return mask
 
@@ -885,8 +1039,7 @@ class TitratableSystem(collections.Mapping):
             pKas = json_data[resname]['pKa']
             nsites = len(states.itervalues().next())
             j = i + nsites
-            segresid = '%s:%s'%(segid, resid)
-            obj[segresid] =\
+            obj[segresidname] =\
                     TitratableResidue(segresidname, states, pKas, occ[:, i:j])
             i = j
         return obj
@@ -938,6 +1091,7 @@ class TitratableResidue(object):
             )
         self.segresid = (':'.join(tokens[0:2])).upper()
         self.resname = tokens[2].upper()
+        self.segresidname = '%s:%s'%(self.segresid, self.resname)
         self.states = _validate_state_dict(states)
         self.pKas = np.asarray(pKas, np.float64)
         # Check that occupancies:
@@ -1005,9 +1159,8 @@ class TitratableResidue(object):
         return _missing_proton_counts
 
     def __repr__(self):
-        segresidname = ':'.join([self.segresid, self.resname])
         return ('TitratableResidue(%s, %s, %s)'
-                %(segresidname, str(self.states), str(self.pKas))
+                %(self.segresidname, str(self.states), str(self.pKas))
                )
 
     def __eq__(self, other):
@@ -1059,25 +1212,47 @@ class TitratableResidue(object):
         occ = self.site_occupancies
         missing_prot_cnts = self.missing_proton_counts
         prot_cnts_are_missing = len(missing_prot_cnts)
+        num_pKas = len(self.pKas)
         if self.nsites == 1:
             # This is trivial - there can only be two states and one pKa.
             return occ
         elif self.nsites == 2:
             # There are four possible states, but one is often missing.
-            if self.nstates == 3 and len(self.pKas) == 2:
-                return np.vstack(
-                        ((1 - occ[:, 0])*occ[:, 1], occ[:, 0]*(1 - occ[:, 1]))
-                ).T
-            elif self.nstates == 3 and len(self.pKas) == 1:
-                return occ
+            if self.nstates == 3:
+                if num_pKas == 1:
+                    return occ
+                elif num_pKas == 2:
+                    return np.vstack((
+                               (1 - occ[:, 0])*occ[:, 1],
+                               occ[:, 0]*(1 - occ[:, 1])
+                           )).T
         elif self.nsites == 3:
             # There are eight possible states, but four are often missing.
             if self.nstates == 4 and prot_cnts_are_missing:
                 if all(n in missing_prot_cnts for n in (0, 1)):
+                    # Ex. primary amine
                     return np.vstack((
                                (1 - occ[:, 0])*occ[:, 1]*occ[:, 2],
                                occ[:, 0]*(1 - occ[:, 1])*occ[:, 2],
                                occ[:, 0]*occ[:, 1]*(1 - occ[:, 2])
+                           )).T
+                elif all(n in missing_prot_cnts for n in (2, 3)):
+                    # Ex. simplified phosphate monoester
+                    return np.vstack((
+                               occ[:, 0]*(1 - occ[:, 1])*(1 - occ[:, 2]),
+                               (1 - occ[:, 0])*occ[:, 1]*(1 - occ[:, 2]),
+                               (1 - occ[:, 0])*(1 - occ[:, 1])*occ[:, 2]
+                           )).T
+            if self.nstates == 7 and prot_cnts_are_missing:
+                if 3 in missing_prot_cnts:
+                    # Ex. phosphate monoester
+                    return np.vstack((
+                               occ[:, 0]*occ[:, 1]*(1 - occ[:, 2]),
+                               occ[:, 0]*(1 - occ[:, 1])*occ[:, 2],
+                               (1 - occ[:, 0])*occ[:, 1]*occ[:, 2],
+                               occ[:, 0]*(1 - occ[:, 1])*(1 - occ[:, 2]),
+                               (1 - occ[:, 0])*occ[:, 1]*(1 - occ[:, 2]),
+                               (1 - occ[:, 0])*(1 - occ[:, 1])*occ[:, 2]
                            )).T
         raise ValueError('site/state combination not implemented')
 
@@ -1109,29 +1284,40 @@ class TitratableResidue(object):
         occ = self.site_occupancies
         missing_prot_cnts = self.missing_proton_counts
         prot_cnts_are_missing = len(missing_prot_cnts)
+        num_pKas = len(self.pKas)
         if self.nsites == 1:
             # This is trivial - there can only be two states and one pKa.
             return occ
         elif self.nsites == 2:
             # There are four possible states, but one is often missing.
             if self.nstates == 3 and prot_cnts_are_missing:
-                if len(self.pKas) == 1:
+                if num_pKas == 1:
                     if 0 in missing_prot_cnts:
                         # Ex. imidazole
                         return occ.prod(axis=1)[:, np.newaxis]
                     elif 2 in missing_prot_cnts:
                         # Ex. carboxylates
                         return occ.sum(axis=1)[:, np.newaxis]
-                elif len(self.pKas) == 2:
+                elif num_pKas == 2:
                     # No equivalent states - Ex. HIS
                     return self.micro_occupancies_noequiv
         elif self.nsites == 3:
             # There are eight possible states, but four are often missing.
-            if self.nstates == 4 and prot_cnts_are_missing:
-                if all(n in missing_prot_cnts for n in (0, 1)):
-                    # Ex. LYS
+            if self.nstates == 4 and num_pKas == 1 and prot_cnts_are_missing:
+                if all(n in missing_prot_cnts for n in (0, 1)): 
+                    # Ex. primary amine
                     occ = self.micro_occupancies_noequiv
                     return (1 - occ.sum(axis=1))[:, np.newaxis]
+                elif all(n in missing_prot_cnts for n in (2, 3)):
+                    # Ex. simplified phosphate monoester
+                    occ = self.micro_occupancies_noequiv
+                    return occ.sum(axis=1)[:, np.newaxis]
+            elif self.nstates == 7 and num_pKas == 2 and prot_cnts_are_missing:
+                if 3 in missing_prot_cnts:
+                    occ = self.micro_occupancies_noequiv
+                    occ1 = occ[:,:3].sum(axis=1)
+                    occ2 = occ[:,3:].sum(axis=1)
+                    return np.vstack((occ1, occ2)).T 
         raise ValueError('site/state combination not implemented')
 
     @property
@@ -1154,7 +1340,7 @@ class TitratableResidue(object):
                     return (1 - occ.sum(axis=1))[:, np.newaxis]
         elif self.nsites == 3:
             # TODO: this may get buggy when going beyond primary amines...
-            if self.nstates == 4:
+            if self.nstates in (4, 7):
                 return occ
         raise ValueError('site/state combination not implemented')
 
