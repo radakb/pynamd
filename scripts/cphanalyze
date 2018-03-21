@@ -171,8 +171,11 @@ line1 = '#pKa '
 line2 = '#hill'
 hilloutput = []
 hilllabels = []
-for segresidname in tcurve_dict.iterkeys():
+for segresidname, tcurve in tcurve_dict.iteritems():
     try:
+        # Don't waste time if the curve is totally flat.
+        if np.all(tcurve[0] < 0.0001) or np.all(tcurve[0] > 0.9999):
+            raise ValueError
         pKas, hillcoeffs = tset.compute_Hill_fit(segresidname, *opts)
         for pKa, hillcoeff in zip(pKas, hillcoeffs):
             colcnt, spacer = space_columns(colcnt)
@@ -191,8 +194,8 @@ for segresidname in tcurve_dict.iterkeys():
             line2 += ' '*12 + '--' + spacer
 print(line1.rstrip())
 print(line2.rstrip())
-print("# nan indicates the pKa is probably outside the given pH range")
-print("# -- indicates that this micro/noequiv is not implemented")
+print("# nan/-- indicates the pKa is probably outside the given pH range")
+print("# -- may also indicate that this micro/noequiv is not implemented")
 if dohilldecomp:
     hilloutfile = open(str(args.hilldecomp), 'w')
     hilloutfile.write('%-14s'%'residues')

@@ -480,6 +480,10 @@ class TitratableSystemSet(collections.Mapping):
                 #
                 pKaM, nM = self.compute_Hill_fit(segresidname, False, False,
                         False, est_method, **kwopts)
+
+                if pKa_ref.size == 1:
+                    pKa_ref = np.tile(pKa_ref[0], 2)
+
                 def f(pH):
                     exponent = sgn*nM[0]*(pKaM[0] - pH)
                     if np.abs(exponent) > 100.0:
@@ -578,28 +582,17 @@ class TitratableSystemSet(collections.Mapping):
             raise ValueError('Not implemented')
 
         # Solve the apparent pKa as the root of the objective function.
-        pKa_guess = np.zeros(nstates)
-        if pKa_ref.size != nstates:
-            pKa_ref = np.tile(pKa_ref, nstates)
-
-        for i in xrange(nstates):
-            p = tcurve(pKa_ref[i])[i]
-            if p < 0.1:
-                pKa_ref[i] -= 0.5
-                p = tcurve(pKa_ref[i])[i]
-            if 0.9 < p:
-                pKa_ref[i] += 0.5
-                p = tcurve(pKa_ref[i])[i]
-            pKa_guess[i] += pKa_ref[i] + np.log10((1-p)/p)
-
-        attempts = 0
-        while True:
-            attempts += 1
+        max_attempts = 10
+        dpH = (self.pHs.max() - self.pHs.min()) / (2*max_attempts)
+        pKa_guess = np.tile(self.pHs.mean(), nstates)
+        for attempt in xrange(max_attempts):
             soltn = root(obj, pKa_guess)
-            if soltn.success or attempts >= 5:
+            if soltn.success:
                break
-            dpKa = (-1)**(pKa_guess < soltn.x)
-            pKa_guess += 0.5*dpKa
+            diff = pKa_guess - soltn.x
+            i = np.where(diff == 0.0)[0]
+            diff[i] += pKa_ref[i] - soltn.x[i]
+            pKa_guess += dpH*np.abs(diff) / diff
 
         apparent_pKas = soltn.x
         hillcoeffs = hill(apparent_pKas)
