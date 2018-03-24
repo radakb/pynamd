@@ -377,6 +377,7 @@ class TitratableSystemSet(collections.Mapping):
         segid, resid, resname = segresidname.split(':')
         segresid = '%s:%s'%(segid, resid)
         kwargs = {'segresids': [segresid], 'resnames': [resname]}
+        micro = (True if noequiv else micro)
         if micro:
             if noequiv:
                 occs = self.micro_occupancies_noequiv(**kwargs).T
@@ -428,25 +429,17 @@ class TitratableSystemSet(collections.Mapping):
         #
         tres = self.values()[0][segresidname]
         pKa_ref = tres.pKas
+        nsites = tres.nsites # i.e. the max. # of protons in this residue
         missing_prot_cnts = tres.missing_proton_counts
-
-        # For special cases the sign changes depending on which states are
-        # excluded from the cycle. The reasons for choosing a sign here will
-        # probably not be obvious, so look below before trying to make sense of
-        # this.
-        if (nstates == 2 and micro) or (nstates == 1 and pKa_ref.size == 2):
-            if 0 in missing_prot_cnts: # common endpoint is (1, 1)
-                sgn = -1.0
-            elif 2 in missing_prot_cnts: # common endpoint is (0, 0)
-                sgn = 1.0
-            else:
-                raise ValueError("Badly constructed 2 state residue...")
 
         if nstates == 1:
             # One macrostate - The apparent pKa is the pH at which the
             # protonated and deprotonated fractions are equal (i.e. 1/2).
             #
             if pKa_ref.size == 2:
+                # NB: The microscopic solution is different up to a sign
+                #     depending on which state is missing.
+                sgn = (-1.0 if nsites in missing_prot_cnts else 1.0)
                 pKa_ref = np.atleast_1d(sgn*np.log10(
                         10**(sgn*pKa_ref[0]) + 10**(sgn*pKa_ref[1])
                 ))
@@ -462,7 +455,7 @@ class TitratableSystemSet(collections.Mapping):
                     nprot_p = compute_mean(nprotons*occs[0], pKa)
                     nprot = compute_mean(nprotons, pKa)
                     p = tcurve(pKa)[0]
-                    return np.array([4*(nprot_p - p*nprot)])
+                    return np.array([(nprot_p - p*nprot) / (p*(1 - p))])
             else:
                 def hill(pKa):
                     hillcoeffs = np.zeros((1, refs.shape[0]))
@@ -470,33 +463,33 @@ class TitratableSystemSet(collections.Mapping):
                     for i, ref in enumerate(refs):
                         q = compute_mean(ref, pKa)
                         q_p = compute_mean(ref*occs[0], pKa)
-                        hillcoeffs[0, i] = 4*(q_p - p*q)
+                        hillcoeffs[0, i] = (q_p - p*q)
+                    hillcoeffs /= p*(1 - p)
                     return hillcoeffs
         elif nstates == 2:
-            if micro:
+            is_diprotic = False
+            for n in xrange(2, nsites):
+                # If any two states are separated by 2 protons, then the system
+                # is diprotic.
+                if np.all([m not in missing_prot_cnts for m in (n, n+2)]):
+                    is_diprotic = True
+
+            if micro and not is_diprotic:
                 # Microscopic states with a shared endpoint - The apparent
                 # pKas depend on the combined macroscopic values.
                 # e.g. histidine or asymmetric carboxylates
                 #
-                pKaM, nM = self.compute_Hill_fit(segresidname, False, False,
-                        False, est_method, **kwopts)
-
                 if pKa_ref.size == 1:
                     pKa_ref = np.tile(pKa_ref[0], 2)
-
-                def f(pH):
-                    exponent = sgn*nM[0]*(pKaM[0] - pH)
-                    if np.abs(exponent) > 100.0:
-                        return (1.0 if exponent < 0.0 else 0.0)
-                    return 1 / (1 + 10**(exponent))
 
                 def tcurve(pH):
                     return np.array([compute_mean(occ, pH) for occ in occs])
 
                 def obj(pH):
-                    obj1 = tcurve(pH[0])[0] - f(pH[0])
-                    obj2 = tcurve(pH[1])[1] - f(pH[1])
-                    return np.asarray([obj1, obj2])
+                    p1, p2 = tcurve(pH[0]), tcurve(pH[1])
+                    obj1 = 2*p1[0] + p1[1] - 1
+                    obj2 = 2*p2[1] + p2[0] - 1
+                    return np.array([obj1, obj2])
 
                 if not decomp: 
                     def hill(pKas):
@@ -508,7 +501,7 @@ class TitratableSystemSet(collections.Mapping):
                         nprot_p21 = compute_mean(nprotons*occs[1], pKas[0])
                         cov11 = nprot_p11 - p1[0]*nprot1
                         cov21 = nprot_p21 - p1[1]*nprot1
-                        hillcoeffs[0] = sgn*(cov21 + 2*cov11) / f(pKas[0])
+                        hillcoeffs[0] = np.abs(2*cov11 + cov21) / p1[0]
                             
                         nprot2 = compute_mean(nprotons, pKas[1])
                         p2 = tcurve(pKas[1])
@@ -516,7 +509,7 @@ class TitratableSystemSet(collections.Mapping):
                         nprot_p22 = compute_mean(nprotons*occs[1], pKas[1])
                         cov12 = nprot_p12 - p2[0]*nprot2
                         cov22 = nprot_p22 - p2[1]*nprot2
-                        hillcoeffs[1] = sgn*(cov12 + 2*cov22) / f(pKas[1])
+                        hillcoeffs[1] = np.abs(2*cov22 + cov12) / p2[1]
                         return hillcoeffs
                 else:
                     def hill(pKas):
@@ -529,16 +522,16 @@ class TitratableSystemSet(collections.Mapping):
                             q_p21 = compute_mean(ref*occs[1], pKas[0])
                             cov11 = q_p11 - p1[0]*q1
                             cov21 = q_p21 - p1[1]*q1
-                            hillcoeffs[0, i] = sgn*(cov21 + 2*cov11)
+                            hillcoeffs[0, i] = np.abs(2*cov11 + cov21)
 
                             q2 = compute_mean(ref, pKas[1])
                             q_p12 = compute_mean(ref*occs[0], pKas[1])
                             q_p22 = compute_mean(ref*occs[1], pKas[1])
                             cov12 = q_p12 - p2[0]*q2
                             cov22 = q_p22 - p2[1]*q2
-                            hillcoeffs[1, i] = sgn*(cov12 + 2*cov22)
-                        hillcoeffs[0, :] /= f(pKas[0])
-                        hillcoeffs[1, :] /= f(pKas[1])
+                            hillcoeffs[1, i] = np.abs(2*cov22 + cov12)
+                        hillcoeffs[0, :] /= p1[0]
+                        hillcoeffs[1, :] /= p2[1]
                         return hillcoeffs
             else:
                 # diprotic residue - There's a lot of symmetry here, so we
@@ -552,9 +545,9 @@ class TitratableSystemSet(collections.Mapping):
                     return np.array([compute_mean(occ, pH) for occ in occs])
 
                 def obj(pH):
-                    P1, P2 = tcurve(pH[0]), tcurve(pH[1])
-                    obj1 = 2*P2[1] + P2[0] - 1 
-                    obj2 = P1[1] - P1[0]
+                    p1, p2 = tcurve(pH[0]), tcurve(pH[1])
+                    obj1 = 2*p2[1] + p2[0] - 1
+                    obj2 = p1[1] - p1[0]
                     return np.asarray([obj1, obj2])
 
                 if not decomp:
@@ -574,8 +567,7 @@ class TitratableSystemSet(collections.Mapping):
 
                         hillcoeffs[0] = -fac*(p1[1]*cov11 - p2[0]*cov12)
                         hillcoeffs[1] = +fac*(p1[1]*cov12 - p2[0]*cov11)
-
-                        return hillcoeffs 
+                        return hillcoeffs
                 else:
                     raise ValueError('Not implemented')
         else:
