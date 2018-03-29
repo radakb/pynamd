@@ -72,6 +72,12 @@ analysis.add_argument('-z', type=float, default=1.0,
 analysis.add_argument('--msmle_opt', type=str, default='trust-ncg',
     help='Scipy minimizer to use for MSMLE'
 )
+analysis.add_argument('--msmle_guess', type=str, default=None,
+    help='File to read intial MSMLE grand potential from.'
+)
+analysis.add_argument('--msmle_rstrt', type=str, default=None,
+    help='File to write MSMLE grand potential to.'
+)
 analysis.add_argument('--nohill', action='store_true',
     help='Do not perform Hill analysis'
 )
@@ -117,6 +123,17 @@ for pH, n in zip(pHs, nsamples):
 # residue.
 #
 kopts = {'method': args.msmle_opt}
+
+if args.msmle_guess is not None:
+    data = np.loadtxt(str(args.msmle_guess)).T
+    if data[0].size != pHs.size:
+        print('Mismatch in number of pH values in msmle_guess (%d != %d)'%(data[0].size, pHs.size)) 
+        sys.exit()
+    if np.any(data[0] - pHs != 0.0):
+        print('Mismatch in pH values in msmle_guess')
+        sys.exit()
+    kopts['f_guess'] = data[1]    
+
 tcurve_dict = tset.compute_titration_curves(
     args.segresids, args.notsegresids, args.resnames, args.notresnames,
     args.micro, args.noequiv, args.method, args.z, **kopts
@@ -211,3 +228,8 @@ if dohilldecomp:
         hilloutfile.write('\n')
     hilloutfile.close()
 
+if args.msmle_rstrt is not None:
+    outfile = open(str(args.msmle_rstrt), 'w')
+    for pH, f in zip(pHs, tset.msmle.f):
+        outfile.write('%5.2f %e\n'%(pH, f))
+    outfile.close()
