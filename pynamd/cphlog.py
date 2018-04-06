@@ -675,7 +675,7 @@ class TitratableSystemSet(collections.Mapping):
                 nstates = mask*self.nstates_micro_equiv
         else:
             occs = self.macro_occupancies(*maskargs)
-            nstates = self.nstates_macro
+            nstates = mask*self.nstates_macro
         titration_curves = np.zeros((nstates.sum(), self.numpHs))
         titration_curve_errs = np.zeros((nstates.sum(), self.numpHs))
 
