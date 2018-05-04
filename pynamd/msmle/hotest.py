@@ -3,7 +3,7 @@ from __future__ import division
 import sys
 
 from numpy import zeros, ones, int32, hstack, newaxis, log, sqrt, arange,\
-        all, where
+        all, abs, where
 from numpy.random import uniform, normal, seed, randint, choice, exponential
 
 
@@ -78,6 +78,7 @@ class HOSet(object):
 
 if __name__ == '__main__':
     import sys
+    import copy
     from timeit import Timer
 
     from msmle import MSMLE
@@ -98,78 +99,76 @@ if __name__ == '__main__':
     dobench = False
 
     if dotest:
-        samples_per_state = 500
-        nstates = 12
-        ntrials = 1
-        
-        rmse1a = []
-        rmse2a = []
-        rmse1e = []
-        rmse2e = []
-        for n in range(ntrials):
-            test = HOSet(nstates, samples_per_state, klow, kmax, mseed, 0.15, 2)
-            f3 = test.f_actual
+        samples_per_state = 100
+        nstates = 8
+        bootstrap_trials = 500 
 
-            msmle = MSMLE(test.data, test.data_size)
-            msmle.solve_uwham()
-            f1 = msmle.f[1:]
-            msmle.check_sample_weight_normalization()
-            ferr1 = sqrt(msmle.fvar[1:])
-            rmse1a.append(sqrt(((f3 - f1)**2).sum()))
-            rmse1e.append(sqrt((ferr1**2).mean()))
-           
-            if do_pymbar:
-                try:
-                    mbar = MBAR(test.data, test.data_size)
-                    f2, ferr2, t = mbar.getFreeEnergyDifferences()
-                    f2 = f2[0][1:]
-                    ferr2 = ferr2[0][1:]
-                    rmse2a.append(sqrt(((f3 - f2)**2).sum()))
-                    rmse2e.append(sqrt((ferr2**2).mean()))
-                    xbar2, varxbar2 = mbar.computeExpectations(test.x_jn)
-                    skipmbar = False
-                except:
-                    print 'MBAR choked!'
-                    skipmbar = True
-                    pass
-            else:
+        test = HOSet(nstates, samples_per_state, klow, kmax, mseed, 0.15, 2)
+        f3 = test.f_actual
+
+        msmle = MSMLE(test.data, test.data_size)
+        msmle.solve_uwham()
+        f1 = msmle.f
+        ferr1 = sqrt(msmle.fvar[1:])    
+        xbar1, varxbar1 = msmle.compute_expectations(test.x_jn)
+
+        ferr1_bs = zeros(f1.size)
+        varxbar1_bs = zeros(xbar1.size)
+        if bootstrap_trials > 1:
+            f1_bs = zeros((bootstrap_trials, f1.size))
+            xbar1_bs = zeros((bootstrap_trials, xbar1.size))
+            for trial in xrange(bootstrap_trials):
+                msmle.resample()
+                msmle.solve_uwham(f1)
+                f1_bs[trial] = msmle.f
+                xbar1_bs[trial] = msmle.compute_expectations(test.x_jn, False)[0]
+            ferr1_bs = f1_bs.std(axis=0)[1:]
+            varxbar1_bs = xbar1_bs.var(axis=0)
+            msmle.revert_sample()
+        f1 = f1[1:]
+
+        if do_pymbar:
+            try:
+                mbar = MBAR(test.data, test.data_size)
+                f2, ferr2, t = mbar.getFreeEnergyDifferences()
+                f2 = f2[0][1:]
+                ferr2 = ferr2[0][1:]
+                xbar2, varxbar2 = mbar.computeExpectations(test.x_jn)
+                skipmbar = False
+            except:
+                print 'MBAR choked!'
                 skipmbar = True
-
-        if ntrials == 1:
-            print 'actual energies',f3
-
-            print 'uwham est. energies',f1
-            print 'uwham est. error',ferr1
-            print 'uwham actual rms error',rmse1a[0]
-            print 'uwham est. rms error',rmse1e[0]
-
-            if not skipmbar:
-                print 'mbar est. energies',f2
-                print 'mbar est. error',ferr2
-                print 'mbar actual rms error',rmse2a[0]
-                print 'mbar est. rms error',rmse2e[0]
-
-            print 'actual means'
-            print test.x0
-            print 'unpooled sample means'
-            test_means = zeros(test.nstates)
-            test_means[msmle.mask_nonzero] += test.x_jn.mean(axis=1)
-            print test_means
-            xbar1, varxbar1 = msmle.compute_expectations(test.x_jn)
-            print 'pooled sample means'
-            print xbar1
-            print varxbar1
-            if not skipmbar:
-                print xbar2
-                print varxbar2
-
+                pass
         else:
-            from numpy import histogram
-            H1a, edges = histogram(rmse1a, 20, (0., 5.))
-            H2a, edges = histogram(rmse2a, 20, (0., 5.))
-            centers = 0.5*(edges[:-1] + edges[1:])
-            for x, y1, y2 in zip(centers, H1a, H2a):
-                print x, y1, y2
+            skipmbar = True
+
+        def print_float_array(msg, arr):
+            print '%-16s '%msg + ' '.join(('% 6.4f'%x for x in arr))
+
+        print 'samples:', test.data_size
+        print_float_array('actual energies', f3)
+
+        print_float_array('uwham energies', f1)
+        print_float_array('uwham act. err', abs(f1 - f3))
+        print_float_array('uwham est. err', ferr1)
+        print_float_array('uwham bst. err', ferr1_bs)
+
+        if not skipmbar:
+            print_float_array('mbar energies', f2)
+            print_float_array('mbar est. err', ferr2)
+
+        print_float_array('actual means', test.x0)
+        test_means = zeros(test.nstates)
+        test_means[msmle.mask_nonzero] += test.x_jn.mean(axis=1)
+        print_float_array('unweighted means', test_means)
+        print_float_array('uwham means', xbar1)
+        print_float_array('act. err', abs(xbar1 - test.x0))
+        print_float_array('est. err', sqrt(varxbar1))
+        print_float_array('bst. err', sqrt(varxbar1_bs))
+        if not skipmbar:
+            print_float_array('mbar means', xbar2)
+            print_float_array('act. err', abs(xbar2 - test.x0))
+            print_float_array('est. ett', sqrt(varxbar2))
 
     if dobench:
         for samples_per_state in (100,): #(50, 100, 400, 800):
