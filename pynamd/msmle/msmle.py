@@ -120,17 +120,17 @@ class MSMLE(object):
             self._f_orig = self._f.copy()
         for i, ni in enumerate(self.nsamples_nonzero):
             j = self.nsamples_nonzero[:i].sum()
-            mask = randint(0, ni, ni)
-            self._mask_resample[j:(j+ni)] += mask
-            self._u_nj_m[j:(j+ni), :] = self._u_nj_m[mask, :]
+            mask = randint(j, j+ni, ni)
+            self._mask_resample[j:(j+ni)] = mask
+            self._u_nj_m[j:(j+ni), :] = self._u_nj_m_orig[mask, :]
 
     def revert_sample(self):
         """Revert from a resampled data set to the original data set."""
         if self._mask_resample is not None:
-            self._u_nj_m = self._u_nj_m_orig.copy()
+            self._u_nj_m = self._u_nj_m_orig
             del self._u_nj_m_orig
             if hasattr(self, '_f_orig'):
-                self._f = self._f_orig.copy()
+                self._f = self._f_orig
                 del self._f_orig
             else:
                 del self._f
