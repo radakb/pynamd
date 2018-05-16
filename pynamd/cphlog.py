@@ -4,7 +4,7 @@ import json
 import warnings
 
 import numpy as np
-from scipy.optimize import root
+from scipy.optimize import root, leastsq
 
 from pynamd.msmle import MSMLE
 
@@ -73,9 +73,11 @@ class TitratableSystemSet(collections.Mapping):
     """
     # These should always be compared with str(method).lower()
     _MULTISTATE_METHODS = ('uwham')
+    _log10 = np.log(10)
 
     def __init__(self, *args, **kwargs):
         self._od = collections.OrderedDict(*args, **kwargs)
+        self._msmle = None
 
     def __delitem__(self, pH):
         del self._od[_validate_float(pH)]
@@ -101,6 +103,15 @@ class TitratableSystemSet(collections.Mapping):
         self._od[_validate_float(pH)] = system
 
     @property
+    def _residues(self):
+        """An OrderedDict of the residues in each TitratableSystem.
+
+        WARNING! This is only meant for querying generic residue info. It is
+        inadvisable to use this for specific residue info (e.g. occupancy).
+        """
+        return self.values()[0]
+
+    @property
     def pHs(self):
         """The pH values at which data was collected."""
         return np.asarray(self.keys())
@@ -119,7 +130,7 @@ class TitratableSystemSet(collections.Mapping):
     def nsites(self):
         """The number of protonation sites per residue (same at all pH values)
         """
-        return self.values()[0].nsites
+        return self._residues.nsites
 
     @property
     def nprotons(self):
@@ -132,17 +143,17 @@ class TitratableSystemSet(collections.Mapping):
     @property
     def nstates_micro_noequiv(self):
         """The number of microstates per residue (same at all pH values)"""
-        return self.values()[0].nstates_micro_noequiv
+        return self._residues.nstates_micro_noequiv
 
     @property
     def nstates_micro_equiv(self):
         """The number of microstates per residue (same at all pH values)"""
-        return self.values()[0].nstates_micro_equiv
+        return self._residues.nstates_micro_equiv
 
     @property
     def nstates_macro(self):
         """The number of macrostates per residue (same at all pH values)"""
-        return self.values()[0].nstates_macro
+        return self._residues.nstates_macro
 
     def nresidues(self, segresids=[], notsegresids=[], resnames=[],
             notresnames=[]):
@@ -161,7 +172,7 @@ class TitratableSystemSet(collections.Mapping):
             explicit exclusion by residue name
         """
         args = (segresids, notsegresids, resnames, notresnames)
-        return self.values()[0].nresidues(*args)
+        return self._residues.nresidues(*args)
 
     def segresids(self, segresids=[], notsegresids=[], resnames=[],
             notresnames=[]):
@@ -180,7 +191,7 @@ class TitratableSystemSet(collections.Mapping):
             explicit exclusion by residue name
         """
         args = (segresids, notsegresids, resnames, notresnames)
-        return self.values()[0].segresids(*args)
+        return self._residues.segresids(*args)
 
     def resnames(self, segresids=[], notsegresids=[], resnames=[], 
             notresnames=[]):
@@ -199,7 +210,7 @@ class TitratableSystemSet(collections.Mapping):
             explicit exclusion by residue name
         """
         args = (segresids, notsegresids, resnames, notresnames)
-        return self.values()[0].resnames(*args)
+        return self._residues.resnames(*args)
 
     def _combine_occupancies(self, nstates, occupancy_type, segresids,
             notsegresids, resnames, notresnames):
@@ -208,13 +219,30 @@ class TitratableSystemSet(collections.Mapping):
         # the data in this array.
         #
         args = (segresids, notsegresids, resnames, notresnames)
-        mask = self.values()[0]._selection_mask(*args)
+        mask = self._residues._selection_mask(*args)
         _nstates = nstates*mask
         occ = np.zeros((self.nsamples.sum(), _nstates.sum()), np.int32)
         indices = np.hstack((np.zeros(1, np.int32), self.nsamples.cumsum()))
         for i, j, tsys in zip(indices[:-1], indices[1:], self.itervalues()):
             occ[i:j] += tsys.__getattribute__(occupancy_type)(*args)
         return occ
+
+    def _select_occupancies(self, segresidname, micro, noequiv):
+        """Return a specific occupancy type for a given residue.
+
+        This is intended as an internal convenience function.
+        """
+        segid, resid, resname = segresidname.split(':')
+        segresid = '%s:%s'%(segid, resid)
+        kwargs = {'segresids': [segresid], 'resnames': [resname]}
+        micro = (True if noequiv else micro)
+        if micro:
+            if noequiv:
+                return self.micro_occupancies_noequiv(**kwargs).T
+            else:
+                return self.micro_occupancies_equiv(**kwargs).T
+        else:
+            return self.macro_occupancies(**kwargs).T
 
     def micro_occupancies_noequiv(self, segresids=[], notsegresids=[],
             resnames=[], notresnames=[]):
@@ -337,7 +365,134 @@ class TitratableSystemSet(collections.Mapping):
         return obj
 
     def compute_Hill_fit(self, segresidname, micro=False, noequiv=False,
-            decomp=False, est_method='uwham', **kwopts):
+            est_method='uwham', z=1.0, eps1=1e-4, eps2=1e-5, **kwopts):
+        """Compute the apparent pKa and Hill coefficient of a given residue.
+
+        This is a non-linear regression that assumes a parametric Hill equation
+        with fixed Hill coefficient.
+
+        Arguments
+        ---------
+        segresidname : str <segid:resid:resname>
+            The residue to be analyzed
+        micro : bool (default: False)
+            If true, separate the residue into its microstates
+        noequiv : bool (default: False)
+            If true, separate a priori equivalent microstates
+        est_method : str (default: uwham)
+            If not already done, perform multistate analysis using the
+            specified method - this also controls which populations are fit
+        z : float (default: 1.0)
+            Confidence interval parameter (i.e. number of standard deviations
+            of the mean). This may affect the extent of bias in non-multi-state
+            estimators.
+        eps1 : float (default: 0.0001)
+            Ignore data outside the interval [eps1, 1-eps]. This can greatly
+            improve the stability of fitting sparsely sampled curves.
+        eps2 : float (default: 0.00001)
+            Ignore data with errors below eps2. This can greatly improve the
+            stability of fitting sparsely sampled curves.
+
+        Additional keyword options not listed here are passed directly to the
+        MSMLE solver (see msmle documentation for details).
+
+        Returns
+        -------
+        apparent_pKas : 1d ndarray
+            The apparent fitted pKa(s) of the residue
+        hillcoeffs : 1d ndarray
+            The fitted Hill coefficient(s) of the residue
+        apparent_pKa_errs : 1d ndarray
+            The apparent pKa fitting error(s) of the residue
+        hillcoeff_errss : 1d ndarray
+            The Hill coefficient fitting error(s) of the residue
+       """
+        segid, resid, resname = segresidname.split(':')
+        segresid = '%s:%s'%(segid, resid)
+        micro = (True if noequiv else micro)
+        tdict = self.compute_titration_curves([segresid], [], [resname], [],
+                micro, noequiv, est_method, z, **kwopts)
+        tcurves, tcurve_errs = tdict[segresidname]
+        # By zeroing out the inverse errors of bad data points, the
+        # contribution to the residual is suppressed and we avoid division by
+        # zero. Note that the degrees of freedom must be adjusted accordingly.
+        good_data = (eps1 < tcurves)*(tcurves < (1-eps1))*(tcurve_errs > eps2)
+        tcurve_errs[good_data] = 1/tcurve_errs[good_data]
+        tcurve_errs[~good_data] *= 0.0
+
+        tres = self._residues[segresidname]
+        nstates = tcurves.shape[0]
+        nsites = tres.nsites
+        missing_prot_cnts = tres.missing_proton_counts
+
+        if nstates == 1:
+            # One macrostate - titration curve is a simple sigmoid.
+            def obj(params):
+                pKa, n = params[0], params[1]
+                f = 1 / (1 + 10**(n*(self.pHs - pKa)))
+                chi = tcurve_errs[0]*(f - tcurves[0])
+                return chi
+        elif nstates == 2:
+            if micro and not tres.is_diprotic:
+                # Microscopic states with a shared endpoint - coupled sigmoids.
+                # e.g. histidine or asymmetric carboxylates
+                # 1 and 2 refer to the populations of arbitrarily labeled
+                # states, not protonated fractions, as elsewhere.
+                #
+                sgn = (1.0 if nsites in missing_prot_cnts else -1.0)
+                def obj(params):
+                    dpK1 = sgn*params[2]*(self.pHs - params[0])
+                    dpK2 = sgn*params[3]*(self.pHs - params[1])
+                    f1 = 1 / (1 + 10**(dpK1 - dpK2) + 10**dpK1)
+                    f2 = 1 / (1 + 10**(dpK2 - dpK1) + 10**dpK2)
+                    chi1 = tcurve_errs[0]*(f1 - tcurves[0])
+                    chi2 = tcurve_errs[1]*(f2 - tcurves[1])
+                    return np.hstack((chi1, chi2))
+            else:
+                # Degenerate guesses cause LOTS of trouble...
+                pKa_guess[0] -= 1.0
+                pKa_guess[1] += 1.0
+                # diprotic residue - coupled sigmoids.
+                # 1 and 2 refer to populations of that many protons, thus
+                # pK2 < pKa1 (and maybe much less).
+                def obj(params):
+                    dpK1 = params[3]*(self.pHs - params[1])
+                    dpK2 = params[2]*(self.pHs - params[0])
+                    f1 = 1 / (1 + 10**dpK1 + 10**-dpK2)
+                    f2 = 1 / (1 + 10**dpK2 + 10**(dpK1 + dpK2))
+                    chi1 = tcurve_errs[1]*(f1 - tcurves[1])
+                    chi2 = tcurve_errs[0]*(f2 - tcurves[0])
+                    return np.hstack((chi1, chi2))
+        else:
+            raise ValueError('Not implemented')
+
+        pKa_guess = np.array([self.pHs[i].mean() for i in good_data])
+        n_guess = np.ones(nstates)
+        p_guess = np.hstack((pKa_guess, n_guess))
+        nparams = p_guess.size
+        # This is just a copy/paste from inside scipy.optimize.curve_fit so
+        # that we can use a vector objective via leastsq.
+        popt, pcov, infodict, errmsg, ierr =\
+                leastsq(obj, p_guess, full_output=1)
+        if pcov is None or ierr < 1 or 4 < ierr: # Optimization failed
+            popt = np.tile(np.nan, nparams)
+            perr = np.tile(np.inf, nparams)
+        else:
+            dof = tcurves[good_data].size - nparams
+            if dof > 0:
+                pcov *= np.sum(infodict['fvec']**2) / dof
+                perr = np.sqrt(np.diag(pcov))
+            else:
+                # Note that popt might still be good here.
+                perr = np.tile(np.inf, nparams)
+        apparent_pKas = popt[:nstates]
+        hillcoeffs = popt[nstates:]
+        apparent_pKa_errs = perr[:nstates]
+        hillcoeff_errs = perr[nstates:]
+        return apparent_pKas, hillcoeffs, apparent_pKa_errs, hillcoeff_errs
+
+    def compute_Hill_msmle(self, segresidname, micro=False, noequiv=False,
+            est_method='uwham', decomp=False, **kwopts):
         """Compute the apparent pKa and Hill coefficient.
 
         This is NOT a non-linear regression. Instead the titration curve(s)
@@ -359,7 +514,7 @@ class TitratableSystemSet(collections.Mapping):
         est_method : str (default: uwham)
             If not already done, perform multistate analysis using the
             specified method
-        
+
         All other keyword options are passed directly to the MSMLE solver,
         but these are only used if no such calculation has already been done.
 
@@ -372,45 +527,22 @@ class TitratableSystemSet(collections.Mapping):
             is a 2d array and the second axis has one entry for every _other_
             residue. Summing along that axis will yield the same result as if
             decomp were False.
-
         """
-        segid, resid, resname = segresidname.split(':')
-        segresid = '%s:%s'%(segid, resid)
-        kwargs = {'segresids': [segresid], 'resnames': [resname]}
-        micro = (True if noequiv else micro)
-        if micro:
-            if noequiv:
-                occs = self.micro_occupancies_noequiv(**kwargs).T
-            else:
-                occs = self.micro_occupancies_equiv(**kwargs).T
-        else:
-            occs = self.macro_occupancies(**kwargs).T
-
-        if decomp:
-            refs = self.macro_occupancies().T
-
-        # Compute the WHAM weights if we haven't already.
-        try:
-            self.msmle
-        except AttributeError:
-            self._compute_multistate_weights(est_method, **kwopts)
+        self._construct_and_solve_msmle(est_method, **kwopts)
+        occs = self._select_occupancies(segresidname, micro, noequiv)
+        refs = (self.macro_occupancies().T if decomp else None)
         nstates = occs.shape[0]
         nprotons = self.nprotons
+        tres = self._residues[segresidname]
 
-        log10 = np.log(10)
         def compute_mean(A, pH):
             # Convenience function/shorthand
             # Use WHAM weights to interpolate/extrapolate a mean at the given
             # pH value. For simplicity, ignore error analysis and assume that
             # we only use ONE pH at a time.
-            u = log10*pH*nprotons[np.newaxis, :]          
-            return self.msmle.compute_unsampled_expectations(A, u, False)[0][0]
+            u = self._log10*pH*nprotons[np.newaxis, :]
+            return self._msmle.compute_unsampled_expectations(A, u, False)[0][0]
 
-#        def compute_err(A, pH):
-#            u = log10*pH*nprotons[np.newaxis, :]
-#            return np.sqrt(
-#                self.msmle.compute_unsampled_expectations(A, u, True)[1][0]
-#            )
         # Here we define different functions depending on the case.
         #
         # tcurve : return all titration curves at the given pH
@@ -427,23 +559,10 @@ class TitratableSystemSet(collections.Mapping):
         #     decomp = False - shape = (nstates)
         #     decomp = True  - shape = (nstates, nresidues)
         #
-        tres = self.values()[0][segresidname]
-        pKa_ref = tres.pKas
-        nsites = tres.nsites # i.e. the max. # of protons in this residue
-        missing_prot_cnts = tres.missing_proton_counts
-
         if nstates == 1:
             # One macrostate - The apparent pKa is the pH at which the
             # protonated and deprotonated fractions are equal (i.e. 1/2).
             #
-            if pKa_ref.size == 2:
-                # NB: The microscopic solution is different up to a sign
-                #     depending on which state is missing.
-                sgn = (-1.0 if nsites in missing_prot_cnts else 1.0)
-                pKa_ref = np.atleast_1d(sgn*np.log10(
-                        10**(sgn*pKa_ref[0]) + 10**(sgn*pKa_ref[1])
-                ))
-
             def tcurve(pH):
                 return np.array([compute_mean(occs[0], pH)])
 
@@ -467,21 +586,10 @@ class TitratableSystemSet(collections.Mapping):
                     hillcoeffs /= p*(1 - p)
                     return hillcoeffs
         elif nstates == 2:
-            is_diprotic = False
-            for n in xrange(2, nsites):
-                # If any two states are separated by 2 protons, then the system
-                # is diprotic.
-                if np.all([m not in missing_prot_cnts for m in (n, n+2)]):
-                    is_diprotic = True
-
-            if micro and not is_diprotic:
-                # Microscopic states with a shared endpoint - The apparent
-                # pKas depend on the combined macroscopic values.
+            if micro and not tres.is_diprotic:
+                # Microscopic states with a shared endpoint
                 # e.g. histidine or asymmetric carboxylates
                 #
-                if pKa_ref.size == 1:
-                    pKa_ref = np.tile(pKa_ref[0], 2)
-
                 def tcurve(pH):
                     return np.array([compute_mean(occ, pH) for occ in occs])
 
@@ -573,19 +681,12 @@ class TitratableSystemSet(collections.Mapping):
         else:
             raise ValueError('Not implemented')
 
-        # Solve the apparent pKa as the root of the objective function.
-        max_attempts = 10
-        dpH = (self.pHs.max() - self.pHs.min()) / (2*max_attempts)
-        pKa_guess = np.tile(self.pHs.mean(), nstates)
-        for attempt in xrange(max_attempts):
-            soltn = root(obj, pKa_guess)
-            if soltn.success:
-               break
-            diff = pKa_guess - soltn.x
-            i = np.where(diff == 0.0)[0]
-            diff[i] += pKa_ref[i] - soltn.x[i]
-            pKa_guess += dpH*np.abs(diff) / diff
-
+        # By far the simplest and most stable guess I've come across is to
+        # perform a fit first. Usually only the Hill coefficient changes in
+        # any appreciable way.
+        #
+        pKa_guess = self.compute_Hill_fit(segresidname, micro, noequiv)[0]
+        soltn = root(obj, pKa_guess)
         apparent_pKas = soltn.x
         hillcoeffs = hill(apparent_pKas)
         # Mask out bad roots. Usually this means the apparent pKa is outside
@@ -601,7 +702,11 @@ class TitratableSystemSet(collections.Mapping):
                 state[pKa > 14.0] = np.nan
         apparent_pKas[apparent_pKas <  0.0] = np.nan
         apparent_pKas[apparent_pKas > 14.0] = np.nan
-        return apparent_pKas, hillcoeffs
+
+        apparent_pKa_errs = np.zeros(apparent_pKas.shape)
+        hillcoeff_errs = np.zeros(hillcoeffs.shape)
+
+        return apparent_pKas, hillcoeffs, apparent_pKa_errs, hillcoeff_errs
 
     def compute_titration_curves(self, segresids=[], notsegresids=[],
             resnames=[], notresnames=[], micro=False, noequiv=False,
@@ -654,18 +759,21 @@ class TitratableSystemSet(collections.Mapping):
         Returns
         -------
         tcurve_dict : OrderedDict
+            A dictionary where the keys are each selected segresidname and the
+            values are the tuple (titration_curves, titration_curve_errs):
 
-        titration_curves : ndarray
-            Two dimensional array of all requested titration curves
-        titration_curve_errs : ndarray
-            Two dimensional array of standard error estimates for all of the
-            requested titration curves
+            titration_curves : 2d ndarray
+                All titration curves associated with the residue. The first
+                axis is the state and the second axis increments the pH value
+            titration_curve_errs : 2d ndarray
+                The standard error estimates for the titration curves,
+                otherwise same as above.
         """
         est_method = str(est_method).lower()
         z2 = float(z)**2 
 
         maskargs = (segresids, notsegresids, resnames, notresnames)
-        mask = self.values()[0]._selection_mask(*maskargs)
+        mask = self._residues._selection_mask(*maskargs)
         if micro:
             if noequiv:
                 occs = self.micro_occupancies_noequiv(*maskargs)
@@ -680,11 +788,11 @@ class TitratableSystemSet(collections.Mapping):
         titration_curve_errs = np.zeros((nstates.sum(), self.numpHs))
 
         if est_method in self._MULTISTATE_METHODS:
-            self._compute_multistate_weights(est_method, **kwopts)
+            self._construct_and_solve_msmle(est_method, **kwopts)
             warnings.simplefilter("error", RuntimeWarning)
             # Iterate each state and compute the titration curve at all pHs.
             for i, occ in enumerate(occs.T):
-                p, pvar = self.msmle.compute_expectations(occ, True)
+                p, pvar = self._msmle.compute_expectations(occ, True)
                 titration_curves[i] += p
                 try:
                     titration_curve_errs[i] += np.sqrt(z2*pvar)
@@ -737,24 +845,21 @@ class TitratableSystemSet(collections.Mapping):
             i = j
         return tcurve_dict 
 
-    def _compute_multistate_weights(self, est_method, **kwopts):
+    def _construct_and_solve_msmle(self, est_method, **kwopts):
         """Create an MSMLE object with the given parameters."""
-        _method = str(est_method).lower()
-        if _method not in self._MULTISTATE_METHODS:
-            raise ValueError('Unrecognized MSMLE method %s'%str(est_method))
+        if self._msmle is not None:
+            return 1
 
-        # TODO: permit estimation at unsampled pH values.
         u = np.zeros((self.numpHs, self.numpHs, self.nsamples.max()))
-        log10 = np.log(10)
-        pHs = self.pHs
         for k, (tsys, n) in enumerate(zip(self.itervalues(), self.nsamples)):
-            u[k, :, :n] = log10*pHs[:, np.newaxis]*tsys.nprotons
-        msmle = MSMLE(u, self.nsamples)
+            u[k, :, :n] = self._log10*self.pHs[:, np.newaxis]*tsys.nprotons
+        self._msmle = MSMLE(u, self.nsamples)
 
-        # TODO: permit other estimation methods as they become available. 
+        _method = str(est_method).lower()
         if _method == 'uwham':
-            msmle.solve_uwham(**kwopts)
-        self.msmle = msmle
+            self._msmle.solve_uwham(**kwopts)
+        else:
+            raise ValueError('Unrecognized MSMLE method %s'%str(est_method))
 
 
 class TitratableSystem(collections.Mapping):
@@ -1095,7 +1200,18 @@ class TitratableResidue(object):
         # Use in-place addition to recycle shape error checking.
         for occ in occupancies[1:]:
             self += TitratableResidue(states, pKas, occ)
-    
+
+    @property
+    def is_diprotic(self):
+        """Whether or not this residue is diprotic"""
+        # If any two states are separated by 2 protons, then the residue is
+        # diprotic.
+        _is_diprotic = False
+        for n in xrange(2, self.nsites):
+            if np.all([m not in self.missing_prot_cnts for m in (n, n+2)]):
+                _is_diprotic = True
+        return _is_diprotic
+
     @property
     def nsites(self):
         """The number of (possibly non-unique) sites in this residue"""
