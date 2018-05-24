@@ -424,6 +424,8 @@ class TitratableSystemSet(collections.Mapping):
         nstates = tcurves.shape[0]
         nsites = tres.nsites
         missing_prot_cnts = tres.missing_proton_counts
+        pKa_guess = np.array([self.pHs[i].mean() for i in good_data])
+        n_guess = np.ones(nstates)
 
         if nstates == 1:
             # One macrostate - titration curve is a simple sigmoid.
@@ -466,8 +468,6 @@ class TitratableSystemSet(collections.Mapping):
         else:
             raise ValueError('Not implemented')
 
-        pKa_guess = np.array([self.pHs[i].mean() for i in good_data])
-        n_guess = np.ones(nstates)
         p_guess = np.hstack((pKa_guess, n_guess))
         nparams = p_guess.size
         # This is just a copy/paste from inside scipy.optimize.curve_fit so
