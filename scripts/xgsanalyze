@@ -1,0 +1,435 @@
+#!/usr/bin/env python
+#
+# THIS IS EXPERIMENTAL CODE FOR USE WITH THE XGS MODULE IN NAMD.
+# USE AT YOUR OWN RISK.
+#
+from __future__ import division, print_function
+import argparse
+import sys
+
+from numpy import zeros, ones, array, asarray, concatenate, meshgrid, newaxis,\
+         atleast_1d, atleast_2d, atleast_3d, union1d, not_equal, nonzero,\
+         where, hstack, vstack, inf, minimum, maximum, sqrt, log, loadtxt,\
+         arange, histogram, histogram2d, repeat, tile, isnan, nan
+
+from pynamd import NamdXGSLog, NamdLog
+from pynamd.msmle import MSMLE
+
+
+def cartesian(*arrays):
+    # Return the Cartesian product of two or more arrays
+    mesh = meshgrid(*arrays)
+    dim = len(mesh)
+    elements = mesh[0].size
+    flat = concatenate(mesh).ravel()
+    return flat.reshape((dim, elements)).T
+
+BOLTZMANN = 0.001987191
+PRESSUREFACTOR = 6.95e4
+parser = argparse.ArgumentParser()
+parser.add_argument('namdlog', type=str, nargs='*')
+parser.add_argument('--auxlog', type=str, nargs='*', default=None)
+parser.add_argument('--dof', type=int, default=0)
+
+parser.add_argument('--start', type=int, default=0)
+parser.add_argument('--stop', type=int, default=None)
+parser.add_argument('--step', type=int, default=None)
+
+parser.add_argument('--states', nargs='*', type=int, default=None)
+parser.add_argument('--obs', nargs='*', type=str, default=None)
+parser.add_argument('--hist', nargs='*', type=str, default=None)
+parser.add_argument('--pmf', action='store_true')
+parser.add_argument('--xrange', nargs=2, type=float, default=None)
+parser.add_argument('--yrange', nargs=2, type=float, default=None)
+parser.add_argument('--nbins', nargs='*', type=int, default=None)
+parser.add_argument('--pbc', action='store_true')
+
+parser.add_argument('-m', '--method', type=str, default='trust-ncg')
+parser.add_argument('-v', '--verbose', action='store_true')
+
+parser.add_argument('--temps', nargs='*', type=float, default=[])
+parser.add_argument('--lambdas', nargs='*', type=float, default=[])
+parser.add_argument('--press', nargs='*', type=float, default=[])
+
+parser.add_argument('--fguess', type=str, default=None)
+
+if len(sys.argv) < 2:
+    parser.print_help()
+    sys.exit()
+args = parser.parse_args()
+
+namdlog = NamdXGSLog(*args.namdlog)
+# The output frequency for energy/observables may be higher than that at which
+# the state index is reported - account for this later with repeat()
+ncycles = namdlog.ncycles 
+
+# The file format here assumes that column 0 is an unused timestamp.
+if args.obs is not None:
+    obs = loadtxt(args.obs[0])[:, 1:]
+    for obsfile in args.obs[1:]:
+        obs = hstack((obs, loadtxt(obsfile)[:, 1:]))
+    ofreq = obs.shape[0] // ncycles
+    obs = obs[args.start:args.stop:args.step]
+else:
+    obs = None
+    ofreq = None
+
+if args.hist is not None:
+    hist = loadtxt(args.hist[0])[:, 1:]
+    for histfile in args.hist[1:]:
+        hist = hstack((hist, loadtxt(histfile)[:, 1:]))
+    hfreq = hist.shape[0] // ncycles
+    hist = hist[args.start:args.stop:args.step]
+    if args.xrange is None:
+        print('need to specify histogram/pmf bounds in x')
+        sys.exit()
+    if hist.shape[1] > 1 and args.yrange is None:
+        print('need to specify histogram/pmf bounds in x/y')
+        sys.exit()
+
+else:
+    hist = None
+    hfreq = None
+efreq = namdlog.efreq
+
+# Recall that energy logs (but not DCDs) always include step 0.
+start = (1 if args.start is None else args.start+1)
+stop = (None if args.stop is None else args.stop+1)
+
+def energy_series(term):
+    return namdlog.energy[term][start:stop:args.step]
+
+def alch_series(term):
+    return namdlog.ti[term][start:stop:args.step]
+
+if ofreq is not None:
+    assert ofreq == efreq
+if hfreq is not None:
+    assert hfreq == efreq
+states = repeat(namdlog.xgs['state'], efreq)[args.start:args.stop:args.step]
+# re-compute ncycles on the subsampled interval
+# NB: this currently rounds fractional cycles...
+ncycles = states.size // efreq
+
+if obs is not None:
+    assert obs.shape[0] == states.size 
+if hist is not None:
+    assert hist.shape[0] == states.size
+
+if namdlog.xgs['type'] in ('ST', 'SS'): 
+    ladder = union1d(namdlog.xgs['ladder'], args.temps)
+elif namdlog.xgs['type'] == 'ALCH':
+    ladder = union1d(namdlog.xgs['ladder'], args.lambdas)
+elif namdlog.xgs['type'] == 'ALCHST':
+    tladder = union1d(namdlog.xgs['ladder'][:, 0], args.temps)
+    lladder = union1d(namdlog.xgs['ladder'][:, 1], args.lambdas)
+    ladder = cartesian(tladder, lladder)
+elif namdlog.xgs['type'] == 'PDS':
+    tladder = union1d(namdlog.xgs['ladder'][:, 0], args.temps)
+    pladder = union1d(namdlog.xgs['ladder'][:, 1], args.press)
+    ladder = cartesian(tladder, pladder)
+else:
+    print('Unrecognized XGS type: %s'%namdlog.xgs['type'])
+    sys.exit(1)
+
+print('# Read %d NAMD log files'%(len(args.namdlog)))
+print('# Using %d data points (%d MC cycles)'%(states.size, ncycles))
+
+M = namdlog.xgs['ladder'].shape[0]
+L = ladder.shape[0]
+# The elements of nsample may or may not all be nonzero.
+nsample = asarray([where(states == i)[0].size for i in xrange(M)], 'int32')
+ntotal = zeros(L, 'int32')
+for i, prmi in enumerate(ladder):
+    for j, prmj in enumerate(namdlog.xgs['ladder']):
+        is_match = True
+        for prmij, prmji in zip(atleast_1d(prmi), atleast_1d(prmj)):
+            if prmij != prmji:
+                is_match = False
+                break
+        if is_match:
+            ntotal[i] = nsample[j]
+# Re-adjust for states that we meant to sample, but did not.
+M = nonzero(ntotal)[0].size
+
+# Re-compute the reduced potential of each sample in each state.
+u_ijn = zeros((M, L, ntotal.max()))
+if namdlog.xgs['type'] == 'ST':
+    beta = 1./(BOLTZMANN*ladder)
+    shift = 0
+    for i, n in enumerate(nsample):
+        if n == 0:
+            shift += 1
+            continue
+        idx = where(states == i)[0]
+        U = energy_series('POTENTIAL')[idx]
+        # Correction for constant pressure
+        if namdlog.pressure is not None:
+            V = energy_series('VOLUME')[idx]
+            U += namdlog.pressure*V/PRESSUREFACTOR
+        u_ijn[i-shift, :, :n] = beta[:, newaxis]*U
+        # Correction for kinetic energy
+        if args.dof:
+            u_ijn[i-shift, :, :n] += 0.5*args.dof*log(beta[:, newaxis])
+elif namdlog.xgs['type'] == 'ALCH' and args.auxlog is None:
+    beta = 1./(BOLTZMANN*namdlog.temperature)
+    lamb1, lame1, lamv1, lamb2, lame2, lamv2 = namdlog.lambdas(ladder)
+    shift = 0
+    for i, n in enumerate(nsample):
+        if n == 0:
+            shift += 1
+            continue
+        idx = where(states == i)[0]
+        UBOND1 = alch_series('BOND1')[idx]
+        UELEC1 = alch_series('ELECT1')[idx]
+        UVDW1 = alch_series('VDW1')[idx]
+        UBOND2 = alch_series('BOND2')[idx]
+        UELEC2 = alch_series('ELECT2')[idx]
+        UVDW2 = alch_series('VDW2')[idx]
+        dU = (lamb1[:, newaxis]*UBOND1 + lamb2[:, newaxis]*UBOND2
+              + lame1[:, newaxis]*UELEC1 + lame2[:, newaxis]*UELEC2
+              + lamv1[:, newaxis]*UVDW1 + lamv2[:, newaxis]*UVDW2)
+        u_ijn[i-shift, :, :n] = beta*dU
+elif namdlog.xgs['type'] == 'ALCH' and args.auxlog is not None:
+    beta = 1./(BOLTZMANN*namdlog.temperature)
+    auxlog = NamdLog(*args.auxlog) 
+    numsteps = energy_series('POTENTIAL').size
+    U = auxlog.energy['POTENTIAL']
+    if U.size // ladder.size != numsteps: 
+        print('Mismatch in XGS and auxiliary energy logs')
+        sys.exit(1)
+    U.resize(numsteps, ladder.size)
+    U = U.T
+    shift = 0
+    for i, n in enumerate(nsample):
+        if n == 0:
+            shift += 1
+            continue
+        idx = where(states == i)[0]
+        u_ijn[i-shift, :, :n] = beta*U[:, idx]
+elif namdlog.xgs['type'] == 'SS':
+    beta = 1./(BOLTZMANN*namdlog.temperature)
+    shift = 0
+    for i, n in enumerate(nsample):
+        if n == 0:
+            shift += 1
+            continue
+        idx = where(states == i)[0]
+        UNB = energy_series('ELECT')[idx] + energy_series('VDW')[idx]
+        u_ijn[i-shift, :, :n] = beta*ladder[i]*UNB/ladder[:, newaxis]
+elif namdlog.xgs['type'] == 'ALCHST':
+    beta = 1./(BOLTZMANN*ladder[:, 0])
+    lamb1, lame1, lamv1, lamb2, lame2, lamv2 = namdlog.lambdas(ladder[:, 1])
+    shift = 0
+    for i, n in enumerate(nsample):
+        if n == 0:
+            shift += 1
+            continue
+        idx = where(states == i)[0]
+        U = energy_series('POTENTIAL')[idx]
+        # Correction for constant pressure
+        if namdlog.pressure is not None:
+            V = energy_series('VOLUME')[idx]
+            U += namdlog.pressure*V/PRESSUREFACTOR
+        UBOND1 = alch_series('BOND1')[idx]
+        UELEC1 = alch_series('ELECT1')[idx]
+        UVDW1 = alch_series('VDW1')[idx]
+        UBOND2 = alch_series('BOND2')[idx]
+        UELEC2 = alch_series('ELECT2')[idx]
+        UVDW2 = alch_series('VDW2')[idx]
+        # U0 is the potential energy of all non-alchemical terms
+        lamb1i, lame1i, lamv1i, lamb2i, lame2i, lamv2i = \
+                namdlog.lambdas(namdlog.xgs['ladder'][i, 1])
+        U0 = (U - lamb1i*UBOND1 - lamb2i*UBOND2
+                - lame1i*UELEC1 - lame2i*UELEC2
+                - lamv1i*UVDW1 - lamv2i*UVDW2)
+        dU = (lamb1[:, newaxis]*UBOND1 + lamb2[:, newaxis]*UBOND2
+              + lame1[:, newaxis]*UELEC1 + lame2[:, newaxis]*UELEC2
+              + lamv1[:, newaxis]*UVDW1 + lamv2[:, newaxis]*UVDW2)
+        u_ijn[i-shift, :, :n] = beta[:, newaxis]*(U0 + dU)
+        # Correction for kinetic energy
+        if args.dof:
+            u_ijn[i-shift, :, :n] += 0.5*args.dof*log(beta[:, newaxis])
+elif namdlog.xgs['type'] == 'PDS':
+    beta = 1./(BOLTZMANN*ladder[:, 0])
+    pres = ladder[:, 1] / PRESSUREFACTOR
+    shift = 0
+    for i, n in enumerate(nsample):
+        if n == 0:
+            shift += 1
+            continue
+        idx = where(states == i)[0]
+        U = energy_series('POTENTIAL')[idx]
+        V = energy_series('VOLUME')[idx]
+        u_ijn[i-shift, :, :n] = beta[:, newaxis]*(U + pres[:, newaxis]*V)
+        # Correction for kinetic energy
+        if args.dof:
+            u_ijn[i-shift, :, :n] += 0.5*args.dof*log(beta[:, newaxis])
+fguess = None
+if args.fguess is not None:
+    try:
+        fguess = loadtxt(args.fguess, usecols=(0,)) 
+    except IOError:
+        pass 
+
+msmle = MSMLE(u_ijn, ntotal)
+soltn = msmle.solve_uwham(fguess, args.method, 1e-9, args.verbose)
+
+if args.fguess is not None:
+    outfile = open(args.fguess, 'w')
+    for f in msmle.f:
+        outfile.write('%e\n'%f)
+    outfile.close()
+
+def format_labels(tag, labels):
+    label = [tag]
+    for i, l in enumerate(labels, 1):
+        lstr = ' '.join((str(li) for li in atleast_1d(l)))
+        label.append(' % 10s'%lstr)
+        if i and i%6 == 0:
+            label.append(' '*14)
+    return ''.join(label).rstrip()
+
+def format_values(tag, values):
+    value = [tag]
+    for i, v in enumerate(values, 1):
+        value.append(' % 10.4f'%v)
+        if i and i%6 == 0:
+            value.append(' '*14)
+    return ''.join(value).rstrip() 
+
+print(format_labels('# n  ', ntotal))
+print(format_labels('# prm', ladder))
+print(format_values('# opt', msmle.f))
+print(format_values('# err', sqrt(msmle.fvar)))
+
+def obs_series(unsorted):
+    # Sort an observable time series by state - return as a flat block.
+    A_n = zeros(nsample.sum())
+    for i, n in enumerate(nsample):
+        m = nsample[:i].sum()
+        A_n[m:(m+n)] = unsorted[where(states == i)]
+    return A_n
+
+if obs is not None:
+    for o in obs.T:
+        A_n = obs_series(o) 
+        A_j, varA_j = msmle.compute_expectations(A_n, True)
+        errA_j = zeros(varA_j.size)
+        errA_j[varA_j > 0] += sqrt(varA_j[varA_j > 0])
+        errA_j[varA_j < 0] = nan
+        print(format_values('# obs', A_j))
+        print(format_values('# err', errA_j))
+
+if hist is not None:
+    args.states = (arange(L) if args.states is None else args.states)
+    args.states.sort()
+    W_nj = msmle.W_nj[:, args.states]
+
+    try:
+        n, pmfdim = hist.shape
+    except ValueError:
+        n, pmfdim = hist.size, 1
+    if pmfdim == 1:
+        hist = obs_series(hist.ravel())
+
+        ranges = array(args.xrange)
+        nbins = args.nbins[0]
+        tile_size = 1 if not args.pbc else 3
+
+        # periodic image of data
+        image_dist = ranges[1] - ranges[0]
+        binhlf = 0.5*image_dist / (nbins - 1)
+        ranges[0] -= binhlf
+        ranges[1] += binhlf
+        hist = tile(hist, tile_size)
+        if args.pbc:
+            hist[0:n] -= image_dist
+            hist[2*n:3*n] += image_dist
+        # symmetry about 0 also
+        tile_size = 2
+        hist = tile(hist, tile_size)
+        hist[3*n:6*n] *= -1
+        tile_size = 6
+
+        rhos = []
+        states = []
+        for s, W in zip(args.states, W_nj.T):
+            W = tile(W, tile_size)
+            rho, xedges = histogram(hist, nbins, ranges, False, W, True)
+            rhos.append(rho)
+            states.append(' '.join(atleast_1d(asarray(ladder[s], 'str'))))
+        rhos = asarray(rhos)
+        xctrs = 0.5*(xedges[:-1] + xedges[1:])
+
+        if args.pmf:
+            f = zeros(rhos.shape)
+            mask_nonzero = nonzero(rhos)
+            mask_zero = where(rhos == 0.0)
+            f[mask_nonzero] -= log(rhos[mask_nonzero])
+            f -= f[mask_nonzero].min()
+            f[mask_zero] += inf
+        else:
+            f = rhos
+
+        print('# states' + 15*' ' + ' '.join(['%14s'%s for s in states]))
+        for x, fji in zip(xctrs, atleast_2d(f).T):
+            print('% 11.6f'%(x), end='')
+            for fi in fji:
+                print(' % 14.4f'%(fi), end='')
+            print()
+
+    elif pmfdim == 2:
+        ranges = array([args.xrange, args.yrange])
+        nbins = array(args.nbins)
+
+        image_dist = ranges[:, 1] - ranges[:, 0]
+        binhlf = 0.5*image_dist / (nbins - 1)
+        ranges[:, 0] -= binhlf
+        ranges[:, 1] += binhlf
+
+        histx = obs_series(hist[:, 0])
+        histy = obs_series(hist[:, 1])
+        hist = vstack((histx, histy)).T
+        tile_size = 1 if not args.pbc else 9
+        hist = tile(hist.T, tile_size).T
+        if args.pbc:
+            hist[0*n:3*n, 0] -= image_dist[0]
+            hist[6*n:9*n, 0] += image_dist[0]
+            hist[0*n:1*n, 1] -= image_dist[1]
+            hist[3*n:4*n, 1] -= image_dist[1]
+            hist[6*n:7*n, 1] -= image_dist[1]
+            hist[2*n:3*n, 1] += image_dist[1]
+            hist[5*n:6*n, 1] += image_dist[1]
+            hist[8*n:9*n, 1] += image_dist[1]
+
+        rhos = []
+        states = []
+        for s, W in zip(args.states, W_nj.T):
+            W = tile(W, tile_size)
+            rho, xedges, yedges = histogram2d(hist[:, 0], hist[:, 1], nbins,
+                                              ranges, True, W)
+            rhos.append(rho)
+            states.append(' '.join(atleast_1d(asarray(ladder[s], 'str')))) 
+        rhos = asarray(rhos)
+        xctrs = 0.5*(xedges[:-1] + xedges[1:])
+        yctrs = 0.5*(yedges[:-1] + yedges[1:])
+
+        if args.pmf:
+            f = zeros(rhos.shape)
+            mask_nonzero = nonzero(rhos)
+            mask_zero = where(rhos == 0.0)
+            f[mask_nonzero] -= log(rhos[mask_nonzero])
+            f -= f[mask_nonzero].min()
+            f[mask_zero] += inf
+        else:
+            f = rhos
+
+        print('# states    ' + ' '.join(['%14s'%s for s in states]))
+        for i, x in enumerate(xctrs):
+            for j, y in enumerate(yctrs):
+                print('% 11.6f % 11.6f'%(x, y), end='')
+                for fij in atleast_3d(f):
+                    print(' % 14.4f'%(fij[i, j]), end='')
+                print()
+            print()
