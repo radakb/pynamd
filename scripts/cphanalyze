@@ -91,6 +91,9 @@ analysis.add_argument('--msmle_cov', action='store_true', default=False,
 analysis.add_argument('--hilldecomp', type=str, default=None, 
     help='Perform MSMLE Hill decomposition (EXPERIMENTAL!) and output to this file.'
 )
+analysis.add_argument('--bootstrap', type=int, default=0,
+    help='Number of bootstrap trials for error estimation'
+)
 
 if len(sys.argv) < 2:
     parser.print_help()
@@ -190,7 +193,7 @@ if args.msmle_cov:
         print('# MSMLE covariance only available with pure MSMLE')
         sys.exit()
     pKa_method = 'MSMLE-%s covariance'%args.method.upper()
-    opts.append(dohilldecomp)
+    opts.extend([dohilldecomp, args.bootstrap])
     compute_Hill = tset.compute_Hill_msmle
 else:
     if dohilldecomp:
@@ -256,6 +259,6 @@ if dohilldecomp:
 
 if args.msmle_rstrt is not None:
     outfile = open(str(args.msmle_rstrt), 'w')
-    for pH, f in zip(pHs, tset.msmle.f):
+    for pH, f in zip(pHs, tset._msmle.f):
         outfile.write('%5.2f %e\n'%(pH, f))
     outfile.close()

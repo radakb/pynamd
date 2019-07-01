@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 from __future__ import print_function
 import argparse
 import sys
@@ -18,46 +18,74 @@ parser.add_argument('--step', type=int, default=1,
                      help='step interval between samples')
 parser.add_argument('--etitle', type=str, nargs='*', default=None,
                     help='only print columns for selected etitles')
+parser.add_argument('--weights', type=float, nargs='*', default=None,
+                    help='linear comb. weights')
+parser.add_argument('--nots', action='store_true')
 args = parser.parse_args()
 
-if len(sys.argv) < 2:
+if len(sys.argv) < 2 or len(args.namdlog) < 1:
     parser.print_help()
     sys.exit()
 
-log = NamdLog(*args.namdlog, info=False)
-numsteps = log.energy['TS'][args.start:args.stop:args.step].size
+log = NamdLog(*args.namdlog)
 args.stop = (log.numsteps if args.stop is None else args.stop)
 
 # This fixes a 'Broken pipe' error when piping output into head, tail, etc.
 signal(SIGPIPE, SIG_DFL)
+
 if args.etitle is None:
+    # Use all of the regular ETITILE entries. This kind of formatted printing
+    # is already built into the NamdLog class.
+    #
     print('#      ' + log.etitle.lstrip('ETITLE:'))
     for n in xrange(args.start, args.stop, args.step):
         print('       ' + log.energy_frame(n).lstrip('ENERGY:'))
-else:
-    title = ['#            TS']
-    indices = []
-    ntitle = 1
-    for etitle in args.etitle:
-        try:
-            indices.append(log.etitle.split().index(etitle))
-            title.append(' %14s'%etitle)
-            ntitle += 1
-            if ntitle == 5:
-                title.append('     ')
-                ntitle = 0
-        except ValueError:
-            print('#WARNING! Skipping unknown etitle %s'%etitle)
-    print(''.join(title)) 
-    for n in xrange(args.start, args.stop, args.step):
-        terms = log.energy_frame(n).split()
-        title = ['        %7d'%(int(terms[1]))]
-        ntitle = 1
-        for idx in indices:
-            title.append(' %14s'%terms[idx])
-            ntitle += 1
-            if ntitle == 5:
-                title.append('     ')
-                ntitle = 0
-        print(''.join(title))
+    sys.exit()
+
+# 
+# Only print user selected entries, possibly from FEPTITLE or TITITLE lines.
+# By default, the timestep is included, unless the --nots option is used.
+#
+if not args.nots and 'TS' not in args.etitle:
+    args.etitle.insert(0, 'TS')
+
+valid_etitle = log.etitle.split()
+valid_tititle = ([] if not len(log.ti) > 0 else log.tititle.split())
+valid_feptitle = ([] if not len(log.fep) > 0 else log.feptitle.split())
+term_list = []
+header = ['#      ']
+ntitle = 1
+invalid_title = []
+for etitle in args.etitle:
+    _etitle = etitle.upper()
+    if _etitle in valid_etitle:
+        term_list.append(log.energy[_etitle][args.start:args.stop:args.step])
+    elif _etitle in valid_tititle:
+        term_list.append(log.ti[_etitle][args.start:args.stop:args.step])
+    elif _etitle in valid_feptitle:
+        term_list.append(log.fep[_etitle][args.start:args.stop:args.step])
+    else:
+        invalid_title.append(etitle)
+        continue
+    header.append(' %14s'%_etitle)
+    ntitle += 1
+    if ntitle == 5:
+        header.append('     ')
+        ntitle = 0
+for etitle in invalid_title:
+    args.etitle.remove(etitle.upper())
+    print('#WARNING! Skipping unknown etitle %s'%etitle)
+print(''.join(header))
+
+numsteps = log.energy['TS'][args.start:args.stop:args.step].size
+for n in xrange(numsteps):
+    line = ['']
+    nvalue = 1
+    for m in xrange(len(args.etitle)):
+        line.append(' %14.4f'%term_list[m][n])
+        nvalue += 1
+        if nvalue == 5:
+            line.append('     ')
+            nvalue = 0
+    print(''.join(line))
 

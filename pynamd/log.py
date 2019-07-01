@@ -228,6 +228,11 @@ class NamdLog(object):
         ('LOWE-ANDERSEN TEMPERATURE', 'loweAndersenTemp', 1, float),
         ('LOWE-ANDERSEN RATE', 'loweAndersenRate', 1, float),
         ('LOWE-ANDERSEN CUTOFF', 'loweAndersenCutoff', 1, float),
+        # stochastic rescaling
+        ('STOCHASTIC RESCALING ACTIVE', 'stochRescale', -1, True),
+        ('STOCHASTIC RESCALING TEMPERATURE', 'stochRescaleTemp', 1, float),
+        ('STOCHASTIC RESCALING PERIOD', 'stochRescalePeriod', 1, float),
+        ('STOCHASTIC RESCALING WILL OCCUR EVERY', 'stochRescaleFreq', 1, float),
         # temperature coupling
         ('TEMPERATURE COUPLING ACTIVE', 'tCouple', -1, True),
         ('COUPLING TEMPERATURE', 'tCoupleTemp', 1, float),
@@ -286,6 +291,7 @@ class NamdLog(object):
         ('ALCHEMICAL', ('alch', 'alchType'), 1, _alchtype),
         ('FEP CURRENT LAMBDA VALUE', 'alchLambda', 1, float),
         ('FEP COMPARISON LAMBDA VALUE', 'alchLambda2', 1, float),
+        ('FEP ALTERNATE COMPARISON LAMBDA VALUE', 'alchLambdaIDWS', 1, float),
         ('FEP CURRENT LAMBDA VALUE SET TO INCREASE IN EVERY', 'alchLambdaFreq',
          1, float),
         ('FEP INTRA-ALCHEMICAL NON-BONDED INTERACTIONS WILL BE DECOUPLED',
@@ -337,7 +343,7 @@ class NamdLog(object):
 
     # Any given NamdLog may or may not have the following attributes
     # depending on the simulation settings.
-    _attr_names = ['energy', 'ti']
+    _attr_names = ['energy', 'ti', 'fep']
 #    _attr_names = ['energy', 'amd_energy', 'ti']
 
     def __init__(self, *filenames, **kwargs):
@@ -346,7 +352,6 @@ class NamdLog(object):
         #
         info = (bool(kwargs['info']) if 'info' in kwargs else True)
         energy = (bool(kwargs['energy']) if 'energy' in kwargs else True) 
-        xgs = (bool(kwargs['xgs']) if 'xgs' in kwargs else False)
         self._nostep0 = False 
         self.filenames = [str(filename) for filename in filenames]
         basefile = self.filenames[0]
@@ -362,14 +367,6 @@ class NamdLog(object):
                 self.__dict__[kw] = value
         else:
             self.energy = None
-        # Read XGS specific output - EXPERIMENTAL!
-        if xgs:
-            self.xgs = {}
-            xgstype, ladder, weights, state = NamdLog.read_xgs(basefile)
-            self.xgs['type'] = xgstype
-            self.xgs['ladder'] = ladder
-            self.xgs['weights'] = weights
-            self.xgs['state'] = state
         # Add additional files by recursive in-place addition. 
         for filename in self.filenames[1:]:
             self += NamdLog(filename, **kwargs)
@@ -450,11 +447,14 @@ class NamdLog(object):
         etag = 'energy'
 #        amdtag = 'amd_energy'
         ttag = 'ti'
+        ftag = 'fep'
         TITLE = 'ETITLE:'
         TITITLE = 'TITITLE:'
+        FEPTITLE = 'FEPTITLE:'
         FORMAT = 'ENERGY:'
 #        AMDFORMAT = 'ACCELERATED MD:'
-        TIFORMAT = 'TI:'        
+        TIFORMAT = 'TI:'
+        FEPFORMAT = 'FEP:'
         # standard MD energy log
         #
         energies[etag] = OrderedDict()
@@ -466,10 +466,14 @@ class NamdLog(object):
         #
         energies[ttag] = OrderedDict()
         ti_term_indices = {}
+        energies[ftag] = OrderedDict()
+        fep_term_indices = {}
 
         terms_are_defined = False
-        amd_terms_are_defined = False
+#        amd_terms_are_defined = False
         ti_terms_are_defined = False
+        fep_terms_are_defined = False
+        prev_ts = None
         for line in open(filename, 'r'):
             # standard MD energy log
             #
@@ -481,8 +485,10 @@ class NamdLog(object):
                     energies[etag][term] = []
             elif line.startswith(FORMAT):
                 values = line.lstrip(FORMAT).strip().split()
-                for i, value in enumerate(values):
-                    energies[etag][term_indices[i]].append(float(value))
+                if values[0] != prev_ts:
+                    for i, value in enumerate(values):
+                        energies[etag][term_indices[i]].append(float(value))
+                prev_ts = values[0]
             # accelerated MD energy log
             #
 #            elif line.startswith(AMDFORMAT):
@@ -511,46 +517,27 @@ class NamdLog(object):
                         energies[ttag][ti_term_indices[i]].append(float(value))
                 except (KeyError, ValueError):
                     pass
+            # FEP energy log
+            #
+            elif line.startswith(FEPTITLE) and not fep_terms_are_defined:
+                fep_terms_are_defined = True
+                fep_terms = line.lstrip(FEPTITLE).strip().split()
+                for i, fep_term in enumerate(fep_terms):
+                    fep_term_indices[i] = fep_term
+                    energies[ftag][fep_term] = []
+            elif line.startswith(FEPFORMAT):
+                values = line.lstrip(FEPFORMAT).strip().split()
+                # This naturally skips FEPFORMAT entries w/o energies.
+                try:
+                    for i, value in enumerate(values):
+                        energies[ftag][fep_term_indices[i]].append(float(value))
+                except (KeyError, ValueError):
+                    pass
+
         for key in energies:
             for term in energies[key]:
                 energies[key][term] = asarray(energies[key][term])
         return energies
-
-    @staticmethod
-    def read_xgs(filename):
-        """Read XGS information from a trajectory.
-
-        WARNING! EXPERIMENTAL! NOT GUARANTEED TO WORK AS EXPECTED!
-                 THE XGS OUTPUT FORMAT IS NOT FIXED YET!
-        """
-        TAG = 'TCL: XGS)'
-        xgstype = None
-        ladder = None
-        weights = None
-        indices = []
-        for line in open(filename, 'r'):
-            if line.startswith(TAG):
-                _line = line.lstrip(TAG).strip()
-            else:
-                continue
-            if _line.startswith('simulation type:'):
-                xgstype = ' '.join(_line.split()[2:])      
-            elif _line.startswith('state parameters:'):
-                terms = _line.split()[2:]
-                try:
-                    ladder = [float(p) for p in terms]
-                except ValueError:
-                    _line = ' '.join(terms).lstrip('{').rstrip('}')
-                    terms = _line.split('} {')
-                    ladder = [[float(p) for p in s.split()] for s in terms]
-                ladder = asarray(ladder)
-            elif _line.startswith('state weights:'):
-                weights = asarray([float(w) for w in _line.split()[2:]])
-            elif _line.startswith('cycle'):
-                terms = _line.split()
-                indices.append(int(terms[-1]))
-        indices = asarray(indices, int32)
-        return (xgstype, ladder, weights, indices) 
 
     @property
     def numsteps(self):
@@ -565,7 +552,7 @@ class NamdLog(object):
         thermostat is set, this is None, even if 'temperature' is set.
         """
         for key in ('langevinTemp', 'tcoupleTemp', 'rescaleTemp',
-                    'reassignTemp', 'loweandersenTemp'):
+                    'reassignTemp', 'loweandersenTemp', 'stochRescaleTemp'):
             try:
                 return float(self.info[key])
             except KeyError:
@@ -672,6 +659,27 @@ class NamdLog(object):
                 title.append(' %14s'%term)
         return ''.join(title)
 
+    @property
+    def tititle(self):
+        """The (formatted) TITITLE string for this MD run."""
+        title = ['TITITLE:     TS']
+        for term in self.ti:
+            title.append(self._fmt_energy_whitespace(term))
+            if term != 'TS':
+                title.append(' %14s'%term)
+        return ''.join(title)
+
+    @property
+    def feptitle(self):
+        """The (formatted) FEPTITLE string for this MD run."""
+        title = ['FEPTITLE:    TS']
+        for term in self.fep:
+            title.append(self._fmt_energy_whitespace(term))
+            if term != 'TS':
+                title.append(' %14s'%term)
+        return ''.join(title)
+
+
     def _fmt_energy_whitespace(self, term):
         """Return the extra white space appropriate to a given energy term.
         This is meant as a helper function to aid in string formatting.
@@ -702,6 +710,20 @@ class NamdLog(object):
         for k, v in self.energy.iteritems(): 
             values[k] = v[step]
         return self._fmt_energy_values(values, self.energy['TS'][step])
+
+    def ti_frame(self, step=-1):
+        """Return the TI output of the given frame as a formatted string."""
+        values = OrderedDict()
+        for k, v in self.ti.iteritems():
+            values[k] = v[step]
+        return self._fmt_energy_values(values, self.ti['TS'][step])
+
+    def fep_frame(self, step=-1):
+        """Return the FEP output of the given frame as a formatted string."""
+        values = OrderedDict()
+        for k, v in self.fep.iteritems():
+            values[k] = v[step]
+        return self._fmt_energy_values(values, self.fep['TS'][step])
 
     def energy_mean(self, start=1, stop=None, step=None):
         """Return the mean of the energy terms as a formatted string.
@@ -792,6 +814,9 @@ class NamdLog(object):
                 otherterms = None
             if selfterms != otherterms:
                 return False
+        if self.temperature != other.temperature or \
+           self.pressure != other.pressure:
+            return False
         return True
 
     def __iadd__(self, other):
@@ -811,10 +836,6 @@ class NamdLog(object):
             for key in selfattr:
                 attrs = (selfattr[key], otherattr[key][n0:])
                 selfattr[key] = concatenate(attrs)
-        try:
-            key = 'state' 
-            self.xgs[key] = concatenate((self.xgs[key], other.xgs[key]))
-        except AttributeError:
-            pass
+        self.filenames.extend(other.filenames)
         return self
 

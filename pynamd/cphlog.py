@@ -1,4 +1,5 @@
 from __future__ import division
+from builtins import range
 import collections
 import json
 import warnings
@@ -413,6 +414,7 @@ class TitratableSystemSet(collections.Mapping):
         tdict = self.compute_titration_curves([segresid], [], [resname], [],
                 micro, noequiv, est_method, z, **kwopts)
         tcurves, tcurve_errs = tdict[segresidname]
+        tcurve_errs[np.where(np.isnan(tcurve_errs))] = 2*eps2
         # By zeroing out the inverse errors of bad data points, the
         # contribution to the residual is suppressed and we avoid division by
         # zero. Note that the degrees of freedom must be adjusted accordingly.
@@ -424,7 +426,7 @@ class TitratableSystemSet(collections.Mapping):
         nstates = tcurves.shape[0]
         nsites = tres.nsites
         missing_prot_cnts = tres.missing_proton_counts
-        pKa_guess = np.array([self.pHs[i].mean() for i in good_data])
+        pKa_guess = np.array([np.median(self.pHs[i]) for i in good_data])
         n_guess = np.ones(nstates)
 
         if nstates == 1:
@@ -452,19 +454,28 @@ class TitratableSystemSet(collections.Mapping):
                     return np.hstack((chi1, chi2))
             else:
                 # Degenerate guesses cause LOTS of trouble...
-                pKa_guess[0] -= 1.0
-                pKa_guess[1] += 1.0
+                pHrange = self.pHs.max() - self.pHs.min()
+                pKa_guess[1] += 0.5*pHrange
+                # Fitting to f0/f2 is generally more stable than f1/f2.
+                tmp = 1 - tcurves[0] - tcurves[1]
+                err = np.zeros(tcurve_errs.shape)
+                err[good_data] = 1 / tcurve_errs[good_data]
+                err = np.sqrt(err[0]**2 + err[1]**2)
+                tmp_good_data = (eps1 < tmp)*(tmp < (1-eps1))*(err > eps2)
+                err[tmp_good_data] = 1 / err[tmp_good_data]
                 # diprotic residue - coupled sigmoids.
                 # 1 and 2 refer to populations of that many protons, thus
                 # pK2 < pKa1 (and maybe much less).
                 def obj(params):
                     dpK1 = params[3]*(self.pHs - params[1])
                     dpK2 = params[2]*(self.pHs - params[0])
-                    f1 = 1 / (1 + 10**dpK1 + 10**-dpK2)
+                    f0 = 1 / (1 + 10**(-dpK1) + 10**(-(dpK1 + dpK2)))
+                    f1 = 1 / (1 + 10**dpK1 + 10**(-dpK2))
                     f2 = 1 / (1 + 10**dpK2 + 10**(dpK1 + dpK2))
+                    chi0 = err*(f0 - tmp)
                     chi1 = tcurve_errs[1]*(f1 - tcurves[1])
                     chi2 = tcurve_errs[0]*(f2 - tcurves[0])
-                    return np.hstack((chi1, chi2))
+                    return np.hstack((chi0, chi1, chi2))
         else:
             raise ValueError('Not implemented')
 
@@ -492,7 +503,7 @@ class TitratableSystemSet(collections.Mapping):
         return apparent_pKas, hillcoeffs, apparent_pKa_errs, hillcoeff_errs
 
     def compute_Hill_msmle(self, segresidname, micro=False, noequiv=False,
-            est_method='uwham', decomp=False, **kwopts):
+            est_method='uwham', decomp=False, bootstrap=0, **kwopts):
         """Compute the apparent pKa and Hill coefficient.
 
         This is NOT a non-linear regression. Instead the titration curve(s)
@@ -534,6 +545,7 @@ class TitratableSystemSet(collections.Mapping):
         nstates = occs.shape[0]
         nprotons = self.nprotons
         tres = self._residues[segresidname]
+        bootstrap = (0 if bootstrap < 2. else int(bootstrap))
 
         def compute_mean(A, pH):
             # Convenience function/shorthand
@@ -703,8 +715,26 @@ class TitratableSystemSet(collections.Mapping):
         apparent_pKas[apparent_pKas <  0.0] = np.nan
         apparent_pKas[apparent_pKas > 14.0] = np.nan
 
-        apparent_pKa_errs = np.zeros(apparent_pKas.shape)
-        hillcoeff_errs = np.zeros(hillcoeffs.shape)
+        if bootstrap:
+            apparent_pKa_errs = np.zeros((bootstrap, nstates))
+            hillcoeff_errs = np.zeros((bootstrap, nstates))
+            # Use the original solution as a guess.
+            kwopts['f_guess'] = self._msmle.f
+            pKa_guess = apparent_pKas
+            for n in range(bootstrap):
+                self._msmle.resample()
+                self._solve_msmle(est_method, **kwopts)
+                soltn = root(obj, pKa_guess)
+                apparent_pKa_errs[n] += soltn.x
+                hillcoeff_errs[n] += hill(soltn.x)
+            self._msmle.revert_sample()
+            apparent_pKa_errs -= apparent_pKas[:, np.newaxis]
+            apparent_pKa_errs = np.sqrt((apparent_pKa_errs**2).mean(axis=0))
+            hillcoeff_errs -= hillcoeffs[:, np.newaxis]
+            hillcoeff_errs = np.sqrt((hillcoeff_errs**2).mean(axis=0))
+        else:
+            apparent_pKa_errs = np.zeros(nstates)
+            hillcoeff_errs = np.zeros(nstates)
 
         return apparent_pKas, hillcoeffs, apparent_pKa_errs, hillcoeff_errs
 
@@ -854,7 +884,10 @@ class TitratableSystemSet(collections.Mapping):
         for k, (tsys, n) in enumerate(zip(self.itervalues(), self.nsamples)):
             u[k, :, :n] = self._log10*self.pHs[:, np.newaxis]*tsys.nprotons
         self._msmle = MSMLE(u, self.nsamples)
+        self._solve_msmle(est_method, **kwopts)
 
+    def _solve_msmle(self, est_method, **kwopts):
+        """Solve the MSMLE object with the given method and parameters."""
         _method = str(est_method).lower()
         if _method == 'uwham':
             self._msmle.solve_uwham(**kwopts)
@@ -1108,8 +1141,12 @@ class TitratableSystem(collections.Mapping):
             raise ValueError('No pH info in header of %s'%cphlog)
         if res_strs is None:
             raise ValueError('No residue info in header of %s'%cphlog)
-        # Read the occupancy trajectory (first column is cycle number).
-        occupancy = np.loadtxt(cphlog, np.int32)[:, 1:]
+        # Read the occupancy trajectory. The first column is the cycle number.
+        tmp = np.loadtxt(cphlog, np.int32)
+        if tmp.ndim == 2:
+            occupancy = tmp[:, 1:]
+        else:
+            raise ValueError('No occupancy data in cphlog %s'%cphlog)
         return (pH, res_strs, occupancy)
 
     @classmethod
@@ -1207,7 +1244,7 @@ class TitratableResidue(object):
         # If any two states are separated by 2 protons, then the residue is
         # diprotic.
         _is_diprotic = False
-        for n in xrange(2, self.nsites):
+        for n in range(2, self.nsites):
             if np.all([m not in self.missing_prot_cnts for m in (n, n+2)]):
                 _is_diprotic = True
         return _is_diprotic
@@ -1250,7 +1287,7 @@ class TitratableResidue(object):
 
         NB: The max # of protons is self.nsites and the min is zero.
         """
-        proton_count_exists = [0 for i in xrange(self.nsites + 1)]
+        proton_count_exists = [0 for i in range(self.nsites + 1)]
         for occ in self.states.itervalues():
             proton_count_exists[sum(occ)] = 1
         _missing_proton_counts = []
@@ -1324,6 +1361,13 @@ class TitratableResidue(object):
                     return occ
                 elif num_pKas == 2:
                     return np.vstack((
+                               (1 - occ[:, 0])*occ[:, 1],
+                               occ[:, 0]*(1 - occ[:, 1])
+                           )).T
+            elif self.nstates == 4:
+                if num_pKas == 2:
+                    return np.vstack((
+                               occ[:, 0]*occ[:, 1],
                                (1 - occ[:, 0])*occ[:, 1],
                                occ[:, 0]*(1 - occ[:, 1])
                            )).T
@@ -1402,6 +1446,13 @@ class TitratableResidue(object):
                 elif num_pKas == 2:
                     # No equivalent states - Ex. HIS
                     return self.micro_occupancies_noequiv
+            elif self.nstates == 4:
+                if num_pKas == 2:
+                    return np.vstack((
+                               occ[:, 0]*occ[:, 1],
+                               (1 - occ[:, 0])*occ[:, 1] +
+                               occ[:, 0]*(1 - occ[:, 1])
+                           )).T
         elif self.nsites == 3:
             # There are eight possible states, but four are often missing.
             if self.nstates == 4 and num_pKas == 1 and prot_cnts_are_missing:
@@ -1431,14 +1482,18 @@ class TitratableResidue(object):
         However, this is not always the case for polyprotic acids.
         """
         occ = self.micro_occupancies_equiv
+        num_pKas = len(self.pKas)
         if self.nsites == 1:
             return occ
         elif self.nsites == 2:
             if self.nstates == 3:
-                if len(self.pKas) == 1:
+                if num_pKas == 1:
                     return occ
                 else:
                     return (1 - occ.sum(axis=1))[:, np.newaxis]
+            elif self.nstates == 4:
+                if num_pKas == 2:
+                    return occ
         elif self.nsites == 3:
             # TODO: this may get buggy when going beyond primary amines...
             if self.nstates in (4, 7):

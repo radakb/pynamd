@@ -1,4 +1,4 @@
-from __future__ import division
+from __future__ import division, print_function
 
 import sys
 
@@ -99,9 +99,9 @@ if __name__ == '__main__':
     dobench = False
 
     if dotest:
-        samples_per_state = 100
+        samples_per_state = 500
         nstates = 8
-        bootstrap_trials = 500 
+        bootstrap_trials = 200
 
         test = HOSet(nstates, samples_per_state, klow, kmax, mseed, 0.15, 2)
         f3 = test.f_actual
@@ -109,6 +109,7 @@ if __name__ == '__main__':
         msmle = MSMLE(test.data, test.data_size)
         msmle.solve_uwham()
         f1 = msmle.f
+        f1 -= f1[0]
         ferr1 = sqrt(msmle.fvar[1:])    
         xbar1, varxbar1 = msmle.compute_expectations(test.x_jn)
 
@@ -121,6 +122,7 @@ if __name__ == '__main__':
                 msmle.resample()
                 msmle.solve_uwham(f1)
                 f1_bs[trial] = msmle.f
+                f1_bs[trial] -= msmle.f[0]
                 xbar1_bs[trial] = msmle.compute_expectations(test.x_jn, False)[0]
             ferr1_bs = f1_bs.std(axis=0)[1:]
             varxbar1_bs = xbar1_bs.var(axis=0)
@@ -136,19 +138,20 @@ if __name__ == '__main__':
                 xbar2, varxbar2 = mbar.computeExpectations(test.x_jn)
                 skipmbar = False
             except:
-                print 'MBAR choked!'
+                print('MBAR choked!')
                 skipmbar = True
                 pass
         else:
             skipmbar = True
 
         def print_float_array(msg, arr):
-            print '%-16s '%msg + ' '.join(('% 6.4f'%x for x in arr))
+            print('%-16s '%msg + ' '.join(('% 6.4f'%x for x in arr)))
 
-        print 'samples:', test.data_size
+        print('samples:', test.data_size)
         print_float_array('actual energies', f3)
 
         print_float_array('uwham energies', f1)
+        print_float_array('uwham bst mean', f1_bs.mean(axis=0)[1:])
         print_float_array('uwham act. err', abs(f1 - f3))
         print_float_array('uwham est. err', ferr1)
         print_float_array('uwham bst. err', ferr1_bs)
@@ -179,5 +182,5 @@ if __name__ == '__main__':
 
                 t1 = tu.timeit(1)
                 t2 = tm.timeit(1)
-                print nstates, samples_per_state, t1, t2, t2/t1
+                print(nstates, samples_per_state, t1, t2, t2/t1)
 
