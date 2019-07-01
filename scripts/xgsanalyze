@@ -13,7 +13,7 @@ from numpy import zeros, ones, array, asarray, concatenate, meshgrid, newaxis,\
          arange, histogram, histogram2d, repeat, tile, isnan, nan
 
 from pynamd import NamdXGSLog, NamdLog
-from pynamd.msmle import MSMLE
+from pynamd import MSMLE
 
 
 def cartesian(*arrays):

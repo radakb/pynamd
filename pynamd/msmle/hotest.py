@@ -81,7 +81,7 @@ if __name__ == '__main__':
     import copy
     from timeit import Timer
 
-    from msmle import MSMLE
+    from pynamd import MSMLE
     try:
         from pymbar import MBAR
         do_pymbar = True

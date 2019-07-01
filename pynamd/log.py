@@ -1,5 +1,6 @@
 """Basic class for interacting with NAMD standard output as a log file"""
-from __future__ import division
+from __future__ import division, print_function
+from future.utils import iteritems
 try:
     from collections import OrderedDict
 except ImportError:
@@ -363,7 +364,7 @@ class NamdLog(object):
         # Read ENERGY: lines or not.
         if energy:
             energies = NamdLog.read_energy(basefile)
-            for kw, value in energies.iteritems():
+            for kw, value in iteritems(energies):
                 self.__dict__[kw] = value
         else:
             self.energy = None
@@ -405,7 +406,7 @@ class NamdLog(object):
                     val = convert(tokens[nkeyfields])
                 else: # this is a vector or tensor
                     val = convert(tokens[nkeyfields:(nkeyfields+nvalfields)])
-                if hasattr(configkey, '__iter__'):
+                if hasattr(configkey, '__iter__') and hasattr(val, '__iter__'):
                     # In case multiple values are on a single line...
                     for ck, v in zip(configkey, val):
                         if ck is not None:
@@ -698,7 +699,7 @@ class NamdLog(object):
         a helper function for making custom formatted strings.
         """
         strng = ['ENERGY: %7d'%step]
-        for term,energy in values.iteritems():
+        for term,energy in iteritems(values):
             strng.append(self._fmt_energy_whitespace(term))
             if term != 'TS': 
                 strng.append(' %14.4f'%energy)
@@ -707,21 +708,21 @@ class NamdLog(object):
     def energy_frame(self, step=-1):
         """Return the energy of the given frame as a formatted string."""
         values = OrderedDict()
-        for k, v in self.energy.iteritems(): 
+        for k, v in iteritems(self.energy): 
             values[k] = v[step]
         return self._fmt_energy_values(values, self.energy['TS'][step])
 
     def ti_frame(self, step=-1):
         """Return the TI output of the given frame as a formatted string."""
         values = OrderedDict()
-        for k, v in self.ti.iteritems():
+        for k, v in iteritems(self.ti):
             values[k] = v[step]
         return self._fmt_energy_values(values, self.ti['TS'][step])
 
     def fep_frame(self, step=-1):
         """Return the FEP output of the given frame as a formatted string."""
         values = OrderedDict()
-        for k, v in self.fep.iteritems():
+        for k, v in iteritems(self.fep):
             values[k] = v[step]
         return self._fmt_energy_values(values, self.fep['TS'][step])
 
@@ -732,7 +733,7 @@ class NamdLog(object):
         step zero.
         """
         values = OrderedDict()
-        for k, v in self.energy.iteritems(): 
+        for k, v in iteritems(self.energy): 
             values[k] = v[start:stop:step].mean()
         return self._fmt_energy_values(values)
 
@@ -745,7 +746,7 @@ class NamdLog(object):
         This is useful for checking energy conservation/drift.
         """
         values = OrderedDict()
-        for k, v in self.energy.iteritems():
+        for k, v in iteritems(self.energy):
             values[k] = (v[1::2] - v[0::2]).mean()
         return self._fmt_energy_values(values)
 
@@ -769,7 +770,7 @@ class NamdLog(object):
             sqrt_Neff_inv = sqrt(float(g) / N)
 
         values = OrderedDict()
-        for k, v in self.energy.iteritems(): 
+        for k, v in iteritems(self.energy): 
             values[k] = v[start:stop:step].std(ddof=1)*sqrt_Neff_inv
         return self._fmt_energy_values(values)
 
@@ -778,7 +779,7 @@ class NamdLog(object):
         energy terms as a formatted string.
         """
         values = OrderedDict()
-        for k, v in self.energy.iteritems():
+        for k, v in iteritems(self.energy):
             values[k] = (v[1::2] - v[0::2]).std(ddof=1)
         return self._fmt_energy_values(values, 0)
 
@@ -788,7 +789,7 @@ class NamdLog(object):
 #        will omit step zero.
 #        """
 #        strng = ['ACCELERATED MD: STEP %d'%0]
-#        for term, amd_energy in self.amd_energy.iteritems():
+#        for term, amd_energy in iteritems(self.amd_energy):
 #            if term != 'STEP':
 #                strng.append(' %s %f'%(term, 
 #                                       amd_energy[start:stop:step].mean())
