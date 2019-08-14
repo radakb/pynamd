@@ -7,7 +7,7 @@ from numpy import identity, diagflat, diagonal, newaxis
 from numpy.random import randint
 from numpy.linalg import solve, inv
 from scipy.optimize import minimize
-from scipy.misc import logsumexp
+from scipy.special import logsumexp
 
 
 class MSMLE(object):
