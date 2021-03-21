@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import division, print_function
 import argparse
 import sys
 
@@ -102,7 +101,7 @@ args = parser.parse_args()
 if len(args.json) == 0:
     print('Must specify at least one cph JSON config file.')
     sys.exit()
-if args.stop < 0 or args.stop < args.start:
+if args.stop is not None and (args.stop < 0 or args.stop < args.start):
     args.stop = None
 
 args.method = 'uwham'
@@ -166,10 +165,10 @@ def space_columns(colcnt):
 print('# state population method: %s'%args.method)
 colcnt = 0
 header = '#     '
-for segresidname, tcurve in tcurve_dict.iteritems(): 
+for segresidname, tcurve in tcurve_dict.items():
     colcnt, spacer = space_columns(colcnt)
     header += ' %14s'%(segresidname) + spacer
-    for i in xrange(tcurve[0].shape[0] - 1):
+    for i in range(tcurve[0].shape[0] - 1):
         colcnt, spacer = space_columns(colcnt) 
         header += ' '*14 + spacer
 print(header.rstrip())
@@ -180,7 +179,7 @@ print(header.rstrip())
 for i, pH in enumerate(pHs):
     colcnt = 0
     line = '%6.3f'%pH
-    for (tcs, tc_errs) in tcurve_dict.itervalues():
+    for (tcs, tc_errs) in tcurve_dict.values():
         for p, perr in zip(tcs[:, i], tc_errs[:, i]):
             colcnt, spacer = space_columns(colcnt)
             line += ' %7.4f %6.4f'%(p, perr) + spacer
@@ -212,7 +211,7 @@ line1 = '#pKa  '
 line2 = '#hill '
 hilloutput = []
 hilllabels = []
-for segresidname, tcurve in tcurve_dict.iteritems():
+for segresidname, tcurve in tcurve_dict.items():
     try:
         # Don't waste time if the curve is totally flat.
         if np.all(tcurve[0] < 0.0001) or np.all(tcurve[0] > 0.9999):
@@ -234,7 +233,7 @@ for segresidname, tcurve in tcurve_dict.iteritems():
                 hilllabels.append(segresidname)
     except ValueError:
         nstates = tcurve_dict[segresidname][1].shape[0]
-        for i in xrange(nstates):
+        for i in range(nstates):
             colcnt, spacer = space_columns(colcnt)
             line1 += ' '*13 + '--' + spacer
             line2 += ' '*13 + '--' + spacer

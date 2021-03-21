@@ -1,5 +1,3 @@
-from __future__ import division
-from builtins import range
 import collections
 import json
 import warnings
@@ -46,14 +44,14 @@ def _validate_state_dict(dict_):
     """
     if not isinstance(dict_, dict):
         raise ValueError('states must be a dict object')
-    for k, v in dict_.iteritems():
+    for k, v in dict_.items():
         dict_.pop(k, None)
         try:
             dict_[str(k)] = _validate_typed_list(v, int)
         except ValueError:
             raise ValueError('Values in state dicts must be integer lists!')
-    vlen = len(dict_.itervalues().next())
-    for k, v in dict_.iteritems():
+    vlen = len(list(dict_.values())[0])
+    for k, v in dict_.items():
         if len(v) == vlen:
             continue
         raise ValueError(
@@ -110,12 +108,12 @@ class TitratableSystemSet(collections.Mapping):
         WARNING! This is only meant for querying generic residue info. It is
         inadvisable to use this for specific residue info (e.g. occupancy).
         """
-        return self.values()[0]
+        return list(self.values())[0]
 
     @property
     def pHs(self):
         """The pH values at which data was collected."""
-        return np.asarray(self.keys())
+        return np.asarray(list(self.keys()))
 
     @property
     def numpHs(self):
@@ -125,7 +123,7 @@ class TitratableSystemSet(collections.Mapping):
     @property
     def nsamples(self):
         """The number of samples at each pH as an ndarray."""
-        return np.asarray([s.nsamples for s in self.itervalues()], np.int32)
+        return np.asarray([s.nsamples for s in self.values()], np.int32)
 
     @property
     def nsites(self):
@@ -137,7 +135,7 @@ class TitratableSystemSet(collections.Mapping):
     def nprotons(self):
         nprotons = np.zeros(self.nsamples.sum(), np.int32)
         indices = np.hstack((np.zeros(1, np.int32), self.nsamples.cumsum()))
-        for i, j, tsys in zip(indices[:-1], indices[1:], self.itervalues()):
+        for i, j, tsys in zip(indices[:-1], indices[1:], self.values()):
             nprotons[i:j] += tsys.nprotons
         return nprotons
 
@@ -224,7 +222,7 @@ class TitratableSystemSet(collections.Mapping):
         _nstates = nstates*mask
         occ = np.zeros((self.nsamples.sum(), _nstates.sum()), np.int32)
         indices = np.hstack((np.zeros(1, np.int32), self.nsamples.cumsum()))
-        for i, j, tsys in zip(indices[:-1], indices[1:], self.itervalues()):
+        for i, j, tsys in zip(indices[:-1], indices[1:], self.values()):
             occ[i:j] += tsys.__getattribute__(occupancy_type)(*args)
         return occ
 
@@ -356,7 +354,7 @@ class TitratableSystemSet(collections.Mapping):
                 tmp[tsys.pH] = tsys
             else:
                 tmp[tsys.pH] += tsys
-        pHs = tmp.keys()
+        pHs = list(tmp.keys())
         pHs.sort()
         obj = cls()
         for pH in pHs:
@@ -881,7 +879,7 @@ class TitratableSystemSet(collections.Mapping):
             return 1
 
         u = np.zeros((self.numpHs, self.numpHs, self.nsamples.max()))
-        for k, (tsys, n) in enumerate(zip(self.itervalues(), self.nsamples)):
+        for k, (tsys, n) in enumerate(zip(self.values(), self.nsamples)):
             u[k, :, :n] = self._log10*self.pHs[:, np.newaxis]*tsys.nprotons
         self._msmle = MSMLE(u, self.nsamples)
         self._solve_msmle(est_method, **kwopts)
@@ -943,7 +941,7 @@ class TitratableSystem(collections.Mapping):
 
     def subsample(self, start, stop, step):
         """Modify the data set for all residues in-place."""
-        for tres in self.itervalues():
+        for tres in self.values():
             tres.site_occupancies = tres.site_occupancies[start:stop:step]
 
     @property
@@ -958,39 +956,39 @@ class TitratableSystem(collections.Mapping):
         This is just the sum of site occupancies of all residues.
         """
         return np.hstack(
-            (tres.site_occupancies for tres in self.itervalues())
+            [tres.site_occupancies for tres in self.values()]
         ).sum(axis=1)
 
     @property
     def nsites(self):
         """The number of sites per residue"""
-        return np.array([tres.nsites for tres in self.itervalues()], np.int32)
+        return np.array([tres.nsites for tres in self.values()], np.int32)
 
     @property
     def nsamples(self):
         """The number of occupation vector samples"""
-        nsamples = self.values()[0].nsamples
+        nsamples = list(self.values())[0].nsamples
         assert np.all(
-          np.asarray([tres.nsamples for tres in self.itervalues()]) == nsamples
+          np.asarray([tres.nsamples for tres in self.values()]) == nsamples
         )
         return nsamples
 
     @property
     def nstates_micro_noequiv(self):
         """The number of microstates per residue without equivalencing"""
-        nstates = [tres.nstates_micro_noequiv for tres in self.itervalues()]
+        nstates = [tres.nstates_micro_noequiv for tres in self.values()]
         return np.array(nstates, np.int32)
 
     @property
     def nstates_micro_equiv(self):
         """The number of microstates per all residue with equivalencing"""
-        nstates = [tres.nstates_micro_equiv for tres in self.itervalues()]
+        nstates = [tres.nstates_micro_equiv for tres in self.values()]
         return np.array(nstates, np.int32)
 
     @property
     def nstates_macro(self):
         """The number of macrostates per residues"""
-        nstates = [tres.nstates_macro for tres in self.itervalues()]
+        nstates = [tres.nstates_macro for tres in self.values()]
         return np.array(nstates, np.int32)
 
     def _selection_mask(self, segresids=[], notsegresids=[], resnames=[],
@@ -1004,11 +1002,11 @@ class TitratableSystem(collections.Mapping):
             return mask
         if len(notsegresids) > 0 or len(notresnames) > 0:
             mask += 1
-            for i, tres in enumerate(self.itervalues()):
+            for i, tres in enumerate(self.values()):
                 if (tres.segresid in notsegresids
                     or tres.resname in notresnames):
                     mask[i] = 0
-        for i, tres in enumerate(self.itervalues()):
+        for i, tres in enumerate(self.values()):
             if ((tres.segresid in segresids and tres.resname in resnames)
                or (tres.segresid in segresids and len(resnames) == 0)
                or (len(segresids) == 0 and tres.resname in resnames)): 
@@ -1025,7 +1023,7 @@ class TitratableSystem(collections.Mapping):
         _nstates = mask*nstates
         occ = np.zeros((self.nsamples, _nstates.sum()), np.int32)
         i = 0
-        for tres, n in zip(self.itervalues(), _nstates):
+        for tres, n in zip(self.values(), _nstates):
             if n == 0:
                 continue
             j = i + n
@@ -1044,14 +1042,14 @@ class TitratableSystem(collections.Mapping):
         """See TitratableSystemSet.segresids."""
         args = (segresids, notsegresids, resnames, notresnames)
         mask = self._selection_mask(*args)
-        return [tres.segresid for tres, m in zip(self.itervalues(), mask) if m]
+        return [tres.segresid for tres, m in zip(self.values(), mask) if m]
 
     def resnames(self, segresids=[], notsegresids=[], resnames=[], 
             notresnames=[]):
         """See TitratableSystemSet.segresids."""
         args = (segresids, notsegresids, resnames, notresnames)
         mask = self._selection_mask(*args)
-        return [tres.resname for tres, m in zip(self.itervalues(), mask) if m]
+        return [tres.resname for tres, m in zip(self.values(), mask) if m]
  
     def micro_occupancies_noequiv(self, segresids=[], notsegresids=[], 
             resnames=[], notresnames=[]):
@@ -1095,7 +1093,7 @@ class TitratableSystem(collections.Mapping):
     def __eq__(self, other):
         if (self.pH != other.pH) or (len(self) != len(other)):
             return False
-        for (sres, ores) in zip(self.iteritems(), other.iteritems()):
+        for (sres, ores) in zip(self.items(), other.items()):
             if sres[0] != ores[0] or sres[1].resname != ores[1].resname:
                 return False
         return True
@@ -1104,7 +1102,7 @@ class TitratableSystem(collections.Mapping):
         """In-place addition - concatenate occupancies if otherwise equal."""
         if not self == other:
             raise TypeError('Cannot add - mismatch in system pH or residues.')
-        for (sres, ores) in zip(self.itervalues(), other.itervalues()):
+        for (sres, ores) in zip(self.values(), other.values()):
             sres += ores
         return self
 
@@ -1164,7 +1162,7 @@ class TitratableSystem(collections.Mapping):
             segid, resid, resname = segresidname.split(':')
             states = json_data[resname]['states']
             pKas = json_data[resname]['pKa']
-            nsites = len(states.itervalues().next())
+            nsites = len(list(states.values())[0])
             j = i + nsites
             obj[segresidname] =\
                     TitratableResidue(segresidname, states, pKas, occ[:, i:j])
@@ -1186,7 +1184,7 @@ class TitratableSystem(collections.Mapping):
         list) using one or more JSON configfiles (as a list).
         """
         json_data = TitratableSystem.read_json(*configfiles)
-        if not hasattr(cphlogs, '__iter__'):
+        if isinstance(cphlogs, str):
             return cls._from_cphlog(cphlogs, json_data)
         obj = cls._from_cphlog(cphlogs[0], json_data)
         for cphlog in cphlogs[1:]:
@@ -1252,7 +1250,7 @@ class TitratableResidue(object):
     @property
     def nsites(self):
         """The number of (possibly non-unique) sites in this residue"""
-        return len(self.states.itervalues().next())
+        return len(list(self.states.values())[0])
 
     @property
     def nsamples(self):
@@ -1288,7 +1286,7 @@ class TitratableResidue(object):
         NB: The max # of protons is self.nsites and the min is zero.
         """
         proton_count_exists = [0 for i in range(self.nsites + 1)]
-        for occ in self.states.itervalues():
+        for occ in self.states.values():
             proton_count_exists[sum(occ)] = 1
         _missing_proton_counts = []
         for i, exists in enumerate(proton_count_exists):
