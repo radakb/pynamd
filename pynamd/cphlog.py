@@ -1,4 +1,4 @@
-import collections
+import collections.abc
 import json
 import warnings
 
@@ -67,7 +67,7 @@ def _validate_float(value):
     return float(value)
 
 
-class TitratableSystemSet(collections.Mapping):
+class TitratableSystemSet(collections.abc.Mapping):
     """A dict-like object containing multiple TitratableSystems sorted by pH.
     """
     # These should always be compared with str(method).lower()
@@ -893,7 +893,7 @@ class TitratableSystemSet(collections.Mapping):
             raise ValueError('Unrecognized MSMLE method %s'%str(est_method))
 
 
-class TitratableSystem(collections.Mapping):
+class TitratableSystem(collections.abc.Mapping):
     """A system of multiple titratable residues in contact with the same pH
 
     Parameters
