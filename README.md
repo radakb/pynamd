@@ -55,5 +55,5 @@ Run with `pytest` in the root of the repository.
 Authors and Contributors
 ========================
 
-* Brian Radak | brian.radak@gmail.com | brian.radak@anl.gov
+* Brian Radak | brian.radak@gmail.com
 
