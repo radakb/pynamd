@@ -1,0 +1,7 @@
+Metadata-Version: 2.1
+Name: pynamd
+Version: 1.0
+Summary: Python Tools for NAMD
+Author: Brian K. Radak
+License: MIT
+License-File: LICENSE

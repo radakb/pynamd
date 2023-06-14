@@ -1,4 +1,7 @@
-import collections
+try:
+	from collections import Mapping
+except ImportError:
+	from collections.abc import Mapping
 import json
 import warnings
 
@@ -67,7 +70,7 @@ def _validate_float(value):
     return float(value)
 
 
-class TitratableSystemSet(collections.Mapping):
+class TitratableSystemSet(Mapping):
     """A dict-like object containing multiple TitratableSystems sorted by pH.
     """
     # These should always be compared with str(method).lower()
@@ -893,7 +896,7 @@ class TitratableSystemSet(collections.Mapping):
             raise ValueError('Unrecognized MSMLE method %s'%str(est_method))
 
 
-class TitratableSystem(collections.Mapping):
+class TitratableSystem(Mapping):
     """A system of multiple titratable residues in contact with the same pH
 
     Parameters
@@ -1174,9 +1177,7 @@ class TitratableSystem(collections.Mapping):
         """Read template info from one or more json configuration files."""
         # TODO: warn the user when a resname is re-defined?
         json_data = {}
-        #print("configfiles:", configfiles)
         for configfile in configfiles:
-            #print("LOADING configfile:", configfile)
             json_data.update(json.load(open(configfile, 'r')))
         return json_data
 
