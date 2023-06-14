@@ -1,7 +1,10 @@
 """Basic class for interacting with NAMD standard output as a log file"""
 from __future__ import division, print_function
 from future.utils import iteritems
-import collections
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordereddict import OrderedDict
 from requests.structures import CaseInsensitiveDict
 from math import sqrt
 
@@ -455,16 +458,16 @@ class NamdLog(object):
         FEPFORMAT = 'FEP:'
         # standard MD energy log
         #
-        energies[etag] = collections.OrderedDict()
+        energies[etag] = OrderedDict()
         term_indices = {}
         # non-standard energy logs (may or may not exist)
         #
-#        energies[amdtag] = collections.OrderedDict()
+#        energies[amdtag] = OrderedDict()
 #        amd_term_indices = {}
         #
-        energies[ttag] = collections.OrderedDict()
+        energies[ttag] = OrderedDict()
         ti_term_indices = {}
-        energies[ftag] = collections.OrderedDict()
+        energies[ftag] = OrderedDict()
         fep_term_indices = {}
 
         terms_are_defined = False
@@ -704,21 +707,21 @@ class NamdLog(object):
 
     def energy_frame(self, step=-1):
         """Return the energy of the given frame as a formatted string."""
-        values = collections.OrderedDict()
+        values = OrderedDict()
         for k, v in iteritems(self.energy): 
             values[k] = v[step]
         return self._fmt_energy_values(values, self.energy['TS'][step])
 
     def ti_frame(self, step=-1):
         """Return the TI output of the given frame as a formatted string."""
-        values = collections.OrderedDict()
+        values = OrderedDict()
         for k, v in iteritems(self.ti):
             values[k] = v[step]
         return self._fmt_energy_values(values, self.ti['TS'][step])
 
     def fep_frame(self, step=-1):
         """Return the FEP output of the given frame as a formatted string."""
-        values = collections.OrderedDict()
+        values = OrderedDict()
         for k, v in iteritems(self.fep):
             values[k] = v[step]
         return self._fmt_energy_values(values, self.fep['TS'][step])
@@ -729,7 +732,7 @@ class NamdLog(object):
         The first 'start' frames will be excluded. The default (1) will omit
         step zero.
         """
-        values = collections.OrderedDict()
+        values = OrderedDict()
         for k, v in iteritems(self.energy): 
             values[k] = v[start:stop:step].mean()
         return self._fmt_energy_values(values)
@@ -742,7 +745,7 @@ class NamdLog(object):
 
         This is useful for checking energy conservation/drift.
         """
-        values = collections.OrderedDict()
+        values = OrderedDict()
         for k, v in iteritems(self.energy):
             values[k] = (v[1::2] - v[0::2]).mean()
         return self._fmt_energy_values(values)
@@ -766,7 +769,7 @@ class NamdLog(object):
             N = self.energy['TS'][start:stop:step].size
             sqrt_Neff_inv = sqrt(float(g) / N)
 
-        values = collections.OrderedDict()
+        values = OrderedDict()
         for k, v in iteritems(self.energy): 
             values[k] = v[start:stop:step].std(ddof=1)*sqrt_Neff_inv
         return self._fmt_energy_values(values)
@@ -775,7 +778,7 @@ class NamdLog(object):
         """Return the standard deviation of the differences of sequential 
         energy terms as a formatted string.
         """
-        values = collections.OrderedDict()
+        values = OrderedDict()
         for k, v in iteritems(self.energy):
             values[k] = (v[1::2] - v[0::2]).std(ddof=1)
         return self._fmt_energy_values(values, 0)
