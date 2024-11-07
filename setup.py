@@ -1,5 +1,5 @@
-from distutils.core import setup
-from distutils.command.build_py import build_py
+from setuptools import setup
+from setuptools.command.build_py import build_py
 
 if __name__ == '__main__':
     setup(name = 'pynamd',
