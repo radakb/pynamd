@@ -2,6 +2,7 @@ try:
 	from collections import Mapping
 except ImportError:
 	from collections.abc import Mapping
+import collections
 import json
 import warnings
 
@@ -47,7 +48,7 @@ def _validate_state_dict(dict_):
     """
     if not isinstance(dict_, dict):
         raise ValueError('states must be a dict object')
-    for k, v in dict_.items():
+    for k, v in list(dict_.items()):
         dict_.pop(k, None)
         try:
             dict_[str(k)] = _validate_typed_list(v, int)
